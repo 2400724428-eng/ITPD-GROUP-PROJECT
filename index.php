@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jumika Supplements | Online Store</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-      <link rel="stylesheet" href="assets/css/index.css">
+    <link rel="stylesheet" href="assets/css/index.css">
 </head>
 <body>
 
@@ -27,10 +27,48 @@
                 <i class="fa-solid fa-bars"></i>
             </button>
 
-            <!-- LOGO -->
+            <!-- LOGO IMAGE -->
             <div class="jum-logo">
-                JUMIKA <span>SUPPLEMENTS</span>
-            </div>
+                <a href="index.php">
+                    <img src="assets/images/logo.jpg" alt="Jumika Supplements Logo" class="jum-logo-img">
+                </a>
+
+          </div>
+
+          <style>  
+
+/* Logo Styling */
+.jum-logo {
+    display: flex;
+    align-items: center;
+}
+
+.jum-logo a {
+    display: inline-block;
+    line-height: 0;
+}
+
+.jum-logo-img {
+    height: 120px; /* Adjust this value depending on your layout requirements */
+    width: auto;
+    object-fit: contain;
+    display: block;
+    border-radius: 500%;
+}
+
+/* Optional: Mobile Drawer Logo Integration */
+.jum-drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.jum-drawer-logo .jum-logo-img {
+    height: 70px; /* Slightly smaller for the slide drawer header if needed */
+}
+
+  </style>
+
 
             <!-- SEARCH BAR -->
             <form class="jum-search" onsubmit="return false;">
@@ -78,7 +116,9 @@
     <!-- 3. SLIDE MENU DETAILS & OVERLAY -->
     <div class="jum-mobile-drawer" id="mobileMenu">
         <div class="jum-drawer-header">
-            <h3>JUMIKA MENU</h3>
+            <div class="jum-drawer-logo">
+                <img src="assets/images/logo.jpg" alt="" class="jum-logo-img">
+            </div>
             <button class="jum-drawer-close" id="closeMenu" type="button">
                 <i class="fa-solid fa-xmark"></i>
             </button>
@@ -204,7 +244,7 @@
             </div>
         </section>
 
-        <!-- NEW SECTION: SHOP BY CATEGORY (USING MENU LINKS ) -->
+        <!-- NEW SECTION: SHOP BY CATEGORY -->
         <section class="jum-section">
             <div class="jum-section-header">
                 <h2><i class="fa-solid fa-shapes text-warning"></i> Shop By Category</h2>
@@ -212,55 +252,42 @@
             </div>
 
             <div class="jum-category-grid">
-                <!-- Category 1: Protein Powders -->
                 <a href="categories/proteins.php" class="jum-category-card">
                     <div class="jum-cat-card-img">
                         <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/78/Optimus_nutrition_gold_standard_whey_protein_%282%29.jpg/500px-Optimus_nutrition_gold_standard_whey_protein_%282%29.jpg" alt="Protein powders" referrerpolicy="no-referrer">
                     </div>
                     <h4>Protein powders</h4>
                 </a>
-
-                <!-- Category 2: Creatine -->
                 <a href="categories/creatine.php" class="jum-category-card">
                     <div class="jum-cat-card-img">
                         <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Creatine_monohydrate.jpg/500px-Creatine_monohydrate.jpg" alt="Creatine" referrerpolicy="no-referrer">
                     </div>
                     <h4>Creatine</h4>
                 </a>
-
-                <!-- Category 3: Pre-workout -->
                 <a href="categories/workout.php" class="jum-category-card">
                     <div class="jum-cat-card-img">
                         <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/Adonis_Men%27s_Pre-workout.jpg/500px-Adonis_Men%27s_Pre-workout.jpg" alt="Pre-workout" referrerpolicy="no-referrer">
                     </div>
                     <h4>Pre-workout</h4>
                 </a>
-
-                <!-- Category 4: Mass gainers -->
                 <a href="categories/massgainers.php" class="jum-category-card">
                     <div class="jum-cat-card-img">
                         <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/Pro360_Protein_powder.jpg/500px-Pro360_Protein_powder.jpg" alt="Mass gainers" referrerpolicy="no-referrer">
                     </div>
                     <h4>Mass gainers</h4>
                 </a>
-
-                <!-- Category 5: Vitamins & wellness -->
                 <a href="categories/vitamins.php" class="jum-category-card">
                     <div class="jum-cat-card-img">
                         <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/Adonis_Men%27s_Pre-workout.jpg/500px-Adonis_Men%27s_Pre-workout.jpg" alt="Vitamins & wellness" referrerpolicy="no-referrer">
                     </div>
                     <h4>Vitamins &amp; wellness</h4>
                 </a>
-
-                <!-- Category 6: Bars & snacks -->
                 <a href="categories/snacks.php" class="jum-category-card">
                     <div class="jum-cat-card-img">
                         <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/78/Optimus_nutrition_gold_standard_whey_protein_%282%29.jpg/500px-Optimus_nutrition_gold_standard_whey_protein_%282%29.jpg" alt="Bars & snacks" referrerpolicy="no-referrer">
                     </div>
                     <h4>Bars &amp; snacks</h4>
                 </a>
-
-                <!-- Category 7: Accessories -->
                 <a href="categories/accessories.php" class="jum-category-card">
                     <div class="jum-cat-card-img">
                         <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Osaka_protein_shaker.jpg/500px-Osaka_protein_shaker.jpg" alt="Accessories" referrerpolicy="no-referrer">
@@ -297,8 +324,6 @@
     </nav>
 
 <script src="assets/js/index.js"></script>
-
-
 
 </body>
 </html>
