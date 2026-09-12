@@ -1,8 +1,19 @@
-
-
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Help desk</title>
 <!-- Font Awesome CDN Link -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link rel="stylesheet" href="assets/css/help-desk.css">
+
+  </head>
+  <body>
+    
+
+
+
 
 <main class="support-page">
 <div class="support-container">
@@ -102,6 +113,8 @@
 
 </div>
 </main>
+  </body>
+  </html>
 
 
 
