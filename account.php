@@ -15,9 +15,33 @@ $client->setRedirectUri($_ENV['GOOGLE_REDIRECT_URI']);
 $client->addScope('email');
 $client->addScope('profile');
 
+// 2. Handle Google OAuth Callback & Redirection
+if (isset($_GET['code'])) {
+    $token = $client->fetchAccessTokenWithAuthCode($_GET['code']);
+    
+    if (!isset($token['error'])) {
+        $client->setAccessToken($token['access_token']);
+        
+        // Get user profile info from Google
+        $google_oauth = new Google_Service_Oauth2($client);
+        $google_account_info = $google_oauth->userinfo->get();
+        
+        // Store user details in session
+        $_SESSION['user_email'] = $google_account_info->email;
+        $_SESSION['user_name'] = $google_account_info->name;
+        
+        // Redirect directly to shop.php upon successful Google sign-in
+        header('Location: shop.php');
+        exit();
+    } else {
+        header('Location: account.php?error=google_auth_failed');
+        exit();
+    }
+}
+
 $login_url = $client->createAuthUrl();
 
-// 2. Handle Traditional Form Submission (Placeholder logic)
+// 3. Handle Traditional Form Submission (Placeholder logic)
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
@@ -30,7 +54,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -61,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
 
         <!-- Traditional Username/Password Form -->
-        <form action="login.php" method="POST" class="login-form">
+        <form action="account.php" method="POST" class="login-form">
             <div class="form-group">
                 <label>Username or Email</label>
                 <div class="input-wrapper">
