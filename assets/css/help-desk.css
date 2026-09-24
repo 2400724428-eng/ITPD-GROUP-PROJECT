@@ -1,0 +1,51 @@
+@media (max-width: 768px) {
+  .support-grid,
+  .support-feature-list {
+    grid-template-columns: 1fr;
+  }
+  .support-hero, 
+  .support-section {
+    padding: 20px 16px;
+  }
+  .support-actions {
+    flex-direction: column;
+  }
+  .support-button {
+    width: 100%;
+  }
+
+  /* Increased font sizes for mobile view */
+  .support-breadcrumb {
+    font-size: 14px;
+  }
+  .support-hero h1 {
+    font-size: 24px;
+  }
+  .support-hero p, 
+  .support-card p, 
+  .support-section > p {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .support-card h3 {
+    font-size: 18px;
+  }
+  .support-card .card-link {
+    font-size: 14px;
+  }
+  .support-section h2 {
+    font-size: 20px;
+  }
+  .support-feature strong {
+    font-size: 14px;
+  }
+  .support-feature span {
+    font-size: 13px;
+  }
+  .status-strip {
+    font-size: 14px;
+  }
+  .support-button {
+    font-size: 14px;
+  }
+}

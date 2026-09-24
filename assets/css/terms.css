@@ -1,0 +1,143 @@
+
+main.support-page {
+  max-width: 900px;
+  margin: 30px auto;
+  padding: 0 16px;
+  background-color: #f9f9fb;
+}
+
+.support-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Breadcrumb */
+.support-breadcrumb {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.support-breadcrumb a {
+  color: #f68b1e;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.support-breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+/* Hero Section */
+.support-hero {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 32px 36px;
+  box-shadow: 0 12px 35px rgba(38, 38, 42, 0.1);
+  border-top: 4px solid #f68b1e;
+}
+
+.support-hero .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(246, 139, 30, 0.1);
+  color: #f68b1e;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 20px;
+  margin-bottom: 12px;
+}
+
+.support-hero h1 {
+  font-size: 26px;
+  font-weight: 800;
+  color: #111827;
+  margin-bottom: 6px;
+  letter-spacing: -0.5px;
+}
+
+.legal-updated {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Main Content Box */
+.support-section {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 36px;
+  box-shadow: 0 12px 35px rgba(38, 38, 42, 0.1);
+}
+
+.legal-callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: rgba(246, 139, 30, 0.06);
+  border: 1px solid rgba(246, 139, 30, 0.2);
+  border-left: 4px solid #f68b1e;
+  padding: 18px;
+  border-radius: 8px;
+  margin-bottom: 30px;
+  font-size: 13px;
+  color: #374151;
+  line-height: 1.5;
+}
+
+.legal-callout i {
+  color: #f68b1e;
+  font-size: 18px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.legal-body h2 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+  margin-top: 28px;
+  margin-bottom: 10px;
+  padding-top: 14px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.legal-body h2:first-of-type {
+  border-top: none;
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.legal-body p {
+  font-size: 13px;
+  color: #4b5563;
+  line-height: 1.6;
+  margin-bottom: 14px;
+}
+
+.legal-body ul {
+  margin-bottom: 16px;
+  padding-left: 20px;
+}
+
+.legal-body li {
+  font-size: 13px;
+  color: #4b5563;
+  line-height: 1.6;
+  margin-bottom: 6px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .support-hero, 
+  .support-section {
+    padding: 20px 16px;
+  }
+}

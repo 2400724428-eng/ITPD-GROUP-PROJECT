@@ -1,0 +1,755 @@
+
+/* =====================================================
+   1. VARIABLES & RESET
+===================================================== */
+:root {
+  --orange: #F68B1E;
+  --orange-dark: #D9720A;
+  --dark: #26262A;
+  --gray-text: #5F5E5A;
+  --light-bg: #F5F5F3;
+  --border: #E5E4DE;
+  --green: #2E9E4F;
+  --red: #E0402C;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+body {
+  background: var(--light-bg);
+  color: var(--dark);
+  overflow-x: hidden;
+  padding-bottom: 20px;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+/* =====================================================
+   2. TOP UTILITY BAR
+===================================================== */
+.jum-topbar {
+  background: var(--dark);
+  color: #ccc;
+  font-size: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.jum-topbar-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 16px;
+}
+
+.jum-topbar-container strong {
+  color: #fff;
+}
+
+.jum-topbar-links a {
+  color: var(--orange);
+  margin-left: 16px;
+  font-weight: 600;
+}
+
+.jum-topbar-links a:hover {
+  color: var(--orange-dark);
+}
+
+/* =====================================================
+   3. HEADER & NAVIGATION
+===================================================== */
+header.jum-header {
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(38, 38, 42, 0.04);
+}
+
+.jum-header-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 12px 16px;
+}
+
+.jum-logo {
+  font-size: 24px;
+  font-weight: 900;
+  color: var(--dark);
+  letter-spacing: -0.5px;
+  white-space: nowrap;
+}
+
+.jum-logo span {
+  color: var(--orange);
+}
+
+.jum-search {
+  flex: 1;
+  display: flex;
+  background: var(--light-bg);
+  border: 1.5px solid var(--border);
+  border-radius: 30px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+  max-width: 550px;
+}
+
+.jum-search:focus-within {
+  border-color: var(--orange);
+}
+
+.jum-search input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 10px 18px;
+  font-size: 13px;
+  outline: none;
+  color: var(--dark);
+}
+
+.jum-search button {
+  background: var(--orange);
+  color: #fff;
+  border: none;
+  padding: 0 20px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.jum-search button:hover {
+  background: var(--orange-dark);
+}
+
+.jum-desktop-icons {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+}
+
+.jum-icon-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: var(--gray-text);
+  font-size: 11px;
+  position: relative;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.jum-icon-link i {
+  font-size: 18px;
+  margin-bottom: 2px;
+}
+
+.jum-icon-link:hover {
+  color: var(--orange);
+}
+
+.jum-badge {
+  background: var(--red);
+  color: #fff;
+  border-radius: 50%;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 5px;
+  position: absolute;
+  top: -4px;
+  right: -4px;
+}
+
+/* Category Nav Bar */
+nav.jum-catnav {
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+}
+
+.jum-catnav-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  height: 44px;
+  padding: 0 16px;
+  overflow-x: auto;
+}
+
+.jum-cat-all {
+  font-weight: 700;
+  color: #fff;
+  background: var(--orange);
+  padding: 0 16px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.jum-catnav-container a {
+  text-decoration: none;
+  color: var(--gray-text);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: color 0.2s;
+}
+
+.jum-catnav-container a:hover {
+  color: var(--orange);
+}
+
+main.jum-main {
+  max-width: 1200px;
+  margin: 20px auto;
+  padding: 0 16px;
+}
+
+/* =====================================================
+   4. MENU BUTTON & DRAWER OVERLAY
+===================================================== */
+.jum-menu-btn {
+  display: flex;
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: transparent;
+  color: var(--dark);
+  font-size: 20px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.jum-menu-btn:hover {
+  color: var(--orange);
+}
+
+.jum-mobile-drawer {
+  position: fixed;
+  top: 0;
+  left: -300px;
+  width: 280px;
+  max-width: 85%;
+  height: 100vh;
+  background: #fff;
+  z-index: 1200;
+  box-shadow: 5px 0 25px rgba(38, 38, 42, 0.15);
+  transition: left 0.3s ease-in-out;
+  overflow-y: auto;
+}
+
+.jum-mobile-drawer.active {
+  left: 0;
+}
+
+.jum-drawer-header {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  background: var(--dark);
+  color: #fff;
+  border-bottom: 3px solid var(--orange);
+}
+
+.jum-drawer-header h3 {
+  font-size: 17px;
+  letter-spacing: 0.5px;
+}
+
+.jum-drawer-close {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.jum-drawer-close:hover {
+  color: var(--orange);
+}
+
+.jum-drawer-body {
+  padding: 12px 0;
+}
+
+.jum-drawer-body a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  color: var(--dark);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.jum-drawer-body a i {
+  width: 20px;
+  color: var(--orange);
+  text-align: center;
+}
+
+.jum-drawer-body a:hover {
+  background: var(--light-bg);
+  color: var(--orange);
+  padding-left: 24px;
+}
+
+.jum-drawer-divider {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 8px 16px;
+}
+
+.jum-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(38, 38, 42, 0.5);
+  z-index: 1100;
+  display: none;
+}
+
+.jum-overlay.active {
+  display: block;
+}
+
+/* =====================================================
+   5. HERO SLIDER
+===================================================== */
+.jum-hero {
+  position: relative;
+  width: 100%;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--dark), #3a3a40);
+  color: #fff;
+  padding: 36px;
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+
+.jum-slide {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.jum-slide.active {
+  display: flex;
+}
+
+.jum-slide-text {
+  max-width: 600px;
+  z-index: 2;
+}
+
+.jum-tag {
+  display: inline-block;
+  background: rgba(246, 139, 30, 0.15);
+  color: var(--orange);
+  font-weight: 700;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  margin-bottom: 12px;
+}
+
+.jum-slide-text h1 {
+  font-size: 28px;
+  line-height: 1.2;
+  margin-bottom: 12px;
+  color: #fff;
+}
+
+.jum-slide-text h1 em {
+  color: var(--orange);
+  font-style: normal;
+}
+
+.jum-slide-text p {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #a1a1aa;
+  margin-bottom: 20px;
+}
+
+.jum-btn-accent {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--orange);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.jum-btn-accent:hover {
+  background: var(--orange-dark);
+  transform: translateY(-2px);
+}
+
+.jum-slide-img {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.jum-slide-img img {
+  max-height: 180px;
+  max-width: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+/* =====================================================
+   6. PRODUCTS, FLASH SALE & GRIDS
+===================================================== */
+.jum-section {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 32px;
+}
+
+.jum-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 10px;
+}
+
+.jum-section-header h2 {
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--dark);
+}
+
+.jum-timer-box {
+  background: #fde8e4;
+  color: var(--red);
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.jum-see-all {
+  font-size: 13px;
+  color: var(--orange-dark);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.jum-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+}
+
+.jum-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.jum-card:hover {
+  box-shadow: 0 6px 16px rgba(38, 38, 42, 0.06);
+  transform: translateY(-3px);
+}
+
+.jum-badge-disc {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: var(--red);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  z-index: 2;
+}
+
+.jum-card-img {
+  height: 130px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.jum-card-img img {
+  max-height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.jum-card-title {
+  font-size: 12px;
+  color: var(--dark);
+  font-weight: 500;
+  margin-bottom: 8px;
+  line-height: 1.3;
+  height: 34px;
+  overflow: hidden;
+}
+
+.jum-price-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.jum-price-current {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--dark);
+}
+
+.jum-price-old {
+  font-size: 11px;
+  color: var(--gray-text);
+  text-decoration: line-through;
+}
+
+.jum-stock-bar {
+  height: 5px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.jum-stock-fill {
+  height: 100%;
+  background: var(--orange);
+}
+
+.jum-stock-text {
+  font-size: 10px;
+  color: var(--gray-text);
+}
+
+/* =====================================================
+   SHOP BY CATEGORY GRID (NEW CARD SECTION)
+===================================================== */
+.jum-category-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 12px;
+}
+
+.jum-category-card {
+  background: var(--light-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 8px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.jum-category-card:hover {
+  background: #fff;
+  border-color: var(--orange);
+  box-shadow: 0 4px 12px rgba(38, 38, 42, 0.08);
+  transform: translateY(-3px);
+}
+
+.jum-cat-card-img {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin-bottom: 8px;
+  border: 1px solid var(--border);
+}
+
+.jum-cat-card-img img {
+  width: 80%;
+  height: 80%;
+  object-type: contain;
+  object-fit: contain;
+}
+
+.jum-category-card h4 {
+  font-size: 12px;
+  color: var(--dark);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+/* =====================================================
+   7. MOBILE BOTTOM NAVIGATION BAR
+===================================================== */
+.jum-bottom-nav {
+  display: none;
+}
+
+/* =====================================================
+   8. RESPONSIVE MEDIA QUERIES
+===================================================== */
+@media (max-width: 1024px) {
+  .jum-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .jum-category-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .jum-desktop-icons {
+    display: none !important;
+  }
+  .jum-catnav {
+    display: none;
+  }
+  .jum-header-container {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .jum-search {
+    order: 10;
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .jum-slide.active {
+    flex-direction: column-reverse;
+    text-align: center;
+    gap: 16px;
+  }
+  .jum-slide-text h1 {
+    font-size: 20px;
+  }
+  .jum-hero {
+    padding: 20px;
+  }
+
+  .jum-category-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  /* Bottom Navigation Bar on Mobile */
+  .jum-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: #fff;
+    border-top: 1px solid var(--border);
+    justify-content: space-around;
+    align-items: center;
+    padding: 6px 0;
+    z-index: 1000;
+    box-shadow: 0 -4px 12px rgba(38, 38, 42, 0.06);
+  }
+
+  .jum-bitem {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    color: var(--gray-text);
+    font-size: 10px;
+    position: relative;
+  }
+
+  .jum-bitem.active,
+  .jum-bitem:hover {
+    color: var(--orange);
+  }
+
+  .jum-bitem i {
+    font-size: 16px;
+    margin-bottom: 2px;
+  }
+
+  .jum-b-badge {
+    position: absolute;
+    top: -3px;
+    right: 18px;
+    background: var(--red);
+    color: #fff;
+    font-size: 8px;
+    padding: 1px 4px;
+    border-radius: 50%;
+    font-weight: 700;
+  }
+
+  body {
+    padding-bottom: 70px;
+  }
+}
+
+@media (max-width: 480px) {
+  .jum-mobile-drawer {
+    width: 280px;
+  }
+  .jum-logo {
+    font-size: 20px;
+  }
+  .jum-category-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
