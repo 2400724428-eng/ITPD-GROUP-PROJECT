@@ -1,58 +1,210 @@
-<?php
-session_start();
-
-$pageTitle = 'Contact Us | Pure Gain';
-$submitted = false;
-$error = '';
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $name = trim($_POST['name'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $issue = trim($_POST['issue'] ?? '');
-    $message = trim($_POST['message'] ?? '');
-
-    if ($name === '' || $email === '' || $issue === '' || $message === '') {
-        $error = 'Please complete all required fields.';
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $error = 'Please enter a valid email address.';
-    } elseif (strlen($message) < 10) {
-        $error = 'Please provide a little more detail so we can help you.';
-    } else {
-        if (isset($_SESSION['user_id']) && is_numeric($_SESSION['user_id'])) {
-            try {
-                require __DIR__ . '/includes/db_connect.php';
-                $stmt = $conn->prepare(
-                    "INSERT INTO messages (user_id, subject, body)
-                     VALUES (:user_id, :subject, :body)"
-                );
-                $stmt->execute([
-                    ':user_id' => (int) $_SESSION['user_id'],
-                    ':subject' => $issue,
-                    ':body' => "Customer: {$name}\nEmail: {$email}\n\n{$message}"
-                ]);
-                $submitted = true;
-            } catch (PDOException $e) {
-                error_log('Pure Gain support ticket error: ' . $e->getMessage());
-                $error = 'Your request could not be saved right now. Please use WhatsApp support instead.';
-            }
-        } else {
-            $waText = "Hello Pure Gain, I need support.\nName: {$name}\nEmail: {$email}\nIssue: {$issue}\n\n{$message}";
-            header('Location: https://wa.me/256761448094?text=' . rawurlencode($waText));
-            exit;
-        }
-    }
-}
-
-require __DIR__ . '/includes/header.php';
-?>
-
 <!-- FontAwesome CDN for Icons -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
 <link rel="stylesheet" href="assets/css/contact.css">
 
-<!-- Custom White & Orange Page Styling -->
-
+<!-- Pure White & Blue UI Upgrade Styling -->
+<style>
+  .support-page {
+    background-color: #ffffff;
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #1e293b;
+    padding: 40px 20px;
+  }
+  .support-container {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .support-breadcrumb {
+    font-size: 13px;
+    color: #64748b;
+    margin-bottom: 24px;
+  }
+  .support-breadcrumb a {
+    color: #2563eb;
+    text-decoration: none;
+  }
+  .support-breadcrumb a:hover {
+    text-decoration: underline;
+  }
+  .support-hero {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 40px;
+    margin-bottom: 32px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.01);
+  }
+  .support-hero .eyebrow {
+    color: #2563eb;
+    background: #eff6ff;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .support-hero h1 {
+    font-size: 28px;
+    font-weight: 800;
+    color: #0f172a;
+    margin-top: 14px;
+    margin-bottom: 8px;
+  }
+  .support-hero p {
+    font-size: 14px;
+    color: #475569;
+    line-height: 1.5;
+    max-width: 700px;
+  }
+  .contact-layout {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 32px;
+  }
+  @media (max-width: 768px) {
+    .contact-layout {
+      grid-template-columns: 1fr;
+    }
+  }
+  .support-section {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+  }
+  .support-section h2 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 8px;
+  }
+  .support-section p {
+    font-size: 13px;
+    color: #64748b;
+  }
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 500px) {
+    .form-row {
+      grid-template-columns: 1fr;
+    }
+  }
+  .form-group {
+    margin-bottom: 20px;
+  }
+  .form-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 6px;
+  }
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    width: 100%;
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #0f172a;
+    outline: none;
+    transition: all 0.2s;
+  }
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    border-color: #2563eb;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  }
+  .form-group textarea {
+    resize: vertical;
+    min-height: 120px;
+  }
+  .form-note {
+    font-size: 11px;
+    color: #64748b;
+    margin-bottom: 20px;
+  }
+  .support-button {
+    background-color: #2563eb;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    width: 100%;
+    justify-content: center;
+  }
+  .support-button:hover {
+    background-color: #1d4ed8;
+  }
+  .contact-method {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .contact-method:last-child {
+    border-bottom: none;
+  }
+  .contact-method i {
+    font-size: 18px;
+    color: #2563eb;
+    margin-top: 2px;
+  }
+  .contact-method strong {
+    display: block;
+    font-size: 13px;
+    color: #0f172a;
+  }
+  .contact-method a, .contact-method span {
+    font-size: 12px;
+    color: #475569;
+    text-decoration: none;
+  }
+  .contact-method a:hover {
+    color: #2563eb;
+    text-decoration: underline;
+  }
+  .legal-callout {
+    background: #eff6ff;
+    border-left: 4px solid #2563eb;
+    color: #1e3a8a;
+    padding: 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    margin-top: 20px;
+    line-height: 1.4;
+  }
+  .status-strip {
+    background: #eff6ff;
+    color: #1e40af;
+    border: 1px solid #bfdbfe;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+</style>
 
 <main class="support-page">
 <div class="support-container">
@@ -69,21 +221,12 @@ require __DIR__ . '/includes/header.php';
 
         <section class="support-section">
             <h2>Send a support request</h2>
-            <p style="margin-bottom:18px;">Please provide enough detail for the support team to understand the issue.</p>
+            <p style="margin-bottom:20px;">Please provide enough detail for the support team to understand the issue.</p>
 
-            <?php if ($submitted): ?>
-                <div class="status-strip" style="margin:0 0 18px;">
-                    <i class="fa-solid fa-circle-check"></i>
-                    <span>Your support request has been recorded successfully.</span>
-                </div>
-            <?php endif; ?>
-
-            <?php if ($error): ?>
-                <div style="background:#fff1ef;border:1px solid #f0c8c1;color:#8d3327;padding:12px;border-radius:6px;font-size:12px;margin-bottom:16px;">
-                    <i class="fa-solid fa-triangle-exclamation"></i>
-                    <?= htmlspecialchars($error) ?>
-                </div>
-            <?php endif; ?>
+            <div class="status-strip">
+                <i class="fa-solid fa-circle-check" style="font-size: 16px;"></i>
+                <span>Your support request has been recorded successfully.</span>
+            </div>
 
             <form class="support-form" method="POST" action="contact.php">
 
@@ -95,7 +238,7 @@ require __DIR__ . '/includes/header.php';
 
                     <div class="form-group">
                         <label for="email">Email address *</label>
-                        <input id="email" name="email" type="email" maxlength="150" placeholder="you@example.com" required value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
+                        <input id="email" name="email" type="email" maxlength="150" placeholder="you@example.com" required value="">
                     </div>
                 </div>
 
@@ -103,14 +246,9 @@ require __DIR__ . '/includes/header.php';
                     <label for="issue">What can we help with? *</label>
                     <select id="issue" name="issue" required>
                         <option value="">Select an issue</option>
-                        <?php
-                        $issues = ['Order problem','Payment problem','Delivery','Return / Refund','Product authenticity','Vendor complaint','Account','Other'];
-                        foreach ($issues as $item):
-                        ?>
-                            <option value="<?= htmlspecialchars($item) ?>" <?= (($_POST['issue'] ?? '') === $item) ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($item) ?>
-                            </option>
-                        <?php endforeach; ?>
+                        <option value="order">Order Delivery & Tracking</option>
+                        <option value="product">Product Authenticity & Quality</option>
+                        <option value="payment">Payment & Billing</option>
                     </select>
                 </div>
 
@@ -175,5 +313,3 @@ require __DIR__ . '/includes/header.php';
 
 </div>
 </main>
-
-<?php require __DIR__ . '/includes/footer.php'; ?>

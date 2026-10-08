@@ -4,7 +4,8 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Gaming Promotion &amp; Newsletter</title>
 <!-- Tailwind CSS CDN with forms plugin -->
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="../src/output.css" rel="stylesheet">
+
 <!-- Google Fonts: Plus Jakarta Sans / Inter -->
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>

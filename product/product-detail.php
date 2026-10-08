@@ -94,7 +94,8 @@ $product = $products[$product_id];
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
 <title><?php echo htmlspecialchars($product['name']); ?> - ApexFit</title>
 <!-- Tailwind CSS CDN with forms and container queries plugins -->
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="../src/output.css" rel="stylesheet">
+
 <!-- Google Fonts: Inter -->
 <link href="https://fonts.googleapis.com" rel="preconnect">
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">

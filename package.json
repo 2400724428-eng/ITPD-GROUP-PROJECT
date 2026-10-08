@@ -1,0 +1,25 @@
+{
+  "name": "itpd-group-project-main",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/2400724428-eng/ITPD-GROUP-PROJECT.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/2400724428-eng/ITPD-GROUP-PROJECT/issues"
+  },
+  "homepage": "https://github.com/2400724428-eng/ITPD-GROUP-PROJECT#readme",
+  "dependencies": {
+    "@tailwindcss/cli": "^4.3.0",
+    "tailwindcss": "^4.3.3"
+  }
+}

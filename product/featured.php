@@ -1,296 +1,371 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-  <title>Featured Products - ApexFit</title>
-  <!-- Tailwind CSS v3 with Plugins -->
-  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-  <!-- Google Fonts: Inter -->
-  <link href="https://fonts.googleapis.com" rel="preconnect"/>
-  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
-  <style data-purpose="typography">
-    body {
-      font-family: 'Inter', sans-serif;
-    }
-  </style>
-  <style data-purpose="custom-animations">
-    /* Smooth card lift and shadow transition */
-    .product-card {
-      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .product-card:hover {
-      transform: translateY(-6px);
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    }
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ApexFit - Supplement Catalog</title>
+<link href="../src/output.css" rel="stylesheet">
 
-    /* Image zoom effect */
-    .product-card-image {
-      transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .product-card:hover .product-card-image {
-      transform: scale(1.08) rotate(1deg);
-    }
-
-    /* Hide scrollbars for clean sliding view */
-    .no-scrollbar::-webkit-scrollbar {
-      display: none;
-    }
-    .no-scrollbar {
-      -ms-overflow-style: none;
-      scrollbar-width: none;
-    }
-
-    /* Entrance Keyframe Animations */
-    @keyframes fadeInSlide {
-      0% {
-        opacity: 0;
-        transform: translateY(25px);
-      }
-      100% {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .animate-entrance {
-      animation: fadeInSlide 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
-
-    /* Button active press feedback */
-    .control-btn {
-      transition: transform 0.15s ease, background-color 0.2s ease;
-    }
-    .control-btn:active {
-      transform: scale(0.92);
-    }
-  </style>
-</head>
-<body class="bg-gradient-to-br from-slate-50 to-slate-100 text-slate-800 antialiased min-h-screen flex items-center justify-center p-3 sm:p-6 lg:p-8">
-
-<!-- BEGIN: FeaturedProductsSection -->
-<section aria-labelledby="featured-products-heading" class="max-w-6xl mx-auto w-full flex flex-col items-center justify-center animate-entrance" data-purpose="featured-products-section">
-  
-  <!-- BEGIN: SectionHeader -->
-  <header class="text-center mb-6 md:mb-10 w-full flex items-center justify-between px-2" data-purpose="section-header">
-    <div>
-      <h2 class="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900 mb-1 text-left" id="featured-products-heading">
-        Featured Supplements
-      </h2>
-      <div aria-hidden="true" class="w-16 h-1 bg-neutral-900 rounded-full transition-all duration-300 hover:w-24"></div>
-    </div>
-    <!-- Scroll Controls for Products -->
-    <div class="flex gap-2">
-      <button type="button" class="control-btn scroll-left-btn p-2 sm:p-2.5 rounded-full bg-white hover:bg-slate-200 shadow-sm text-slate-800 border border-slate-200 transition-colors" aria-label="Scroll left">
-        <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-      </button>
-      <button type="button" class="control-btn scroll-right-btn p-2 sm:p-2.5 rounded-full bg-white hover:bg-slate-200 shadow-sm text-slate-800 border border-slate-200 transition-colors" aria-label="Scroll right">
-        <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-      </button>
-    </div>
-  </header>
-  <!-- END: SectionHeader -->
-
-  <!-- BEGIN: Layout Container (Stacked on Mobile, Side-by-Side on Desktop) -->
-  <div class="w-full flex flex-col lg:flex-row gap-6 items-stretch">
-
-    <!-- Fixed Promotional Banner Card (Stacks nicely on top on mobile) -->
-    <article class="product-card group relative rounded-xl overflow-hidden h-[300px] sm:h-[340px] shadow-md flex flex-col justify-end w-full lg:w-[360px] bg-slate-900 shrink-0 border border-slate-800" data-purpose="promo-poster-card">
-      <div class="absolute inset-0 z-0 flex items-center justify-center overflow-hidden">
-        <img alt="Fitness Training Promotional Poster" class="w-full h-full object-cover opacity-60 group-hover:scale-110 transition-transform duration-700 ease-out" loading="lazy" src="assets/images/banner.png"/>
-      </div>
-      <div class="relative z-10 p-5 sm:p-6 flex flex-col items-start justify-end bg-gradient-to-t from-black/95 via-black/60 to-transparent w-full">
-        <span class="text-xs font-bold uppercase tracking-wider text-amber-400 mb-1">Special Promo</span>
-        <h3 class="text-xl sm:text-2xl font-bold text-white leading-tight mb-1 group-hover:text-amber-100 transition-colors">
-          Summer Shred Challenge: Up to 40% Off
-        </h3>
-        <p class="text-white/90 text-xs sm:text-sm font-normal leading-snug mb-3 max-w-lg">
-          Level up your workouts with our elite stacks and performance bundles. Claim your discount today.
-        </p>
-        <div class="w-full">
-          <a aria-label="Shop the sale" class="inline-flex items-center gap-1.5 bg-neutral-900 hover:bg-black text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-lg shadow transition-all duration-200 hover:gap-2" href="#featured-products-heading">
-            <span>Claim Offer</span>
-            <svg class="w-3.5 h-3.5 stroke-current stroke-2 fill-none" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M5 12h14"></path><path d="M12 5l7 7-7 7"></path></svg>
-          </a>
-        </div>
-      </div>
-    </article>
-
-    <!-- Sliding Products Track Container (10 items) -->
-    <div class="w-full relative overflow-hidden flex-grow product-slider-wrapper py-2">
-      <div class="flex gap-4 sm:gap-5 overflow-x-auto no-scrollbar snap-x snap-mandatory scroll-smooth pb-4 pt-1 w-full product-slider-track">
-
-        <!-- Card 1: Platinum Whey -->
-        <article class="product-card group relative rounded-xl overflow-hidden h-[340px] shadow-sm flex flex-col justify-end flex-none w-[240px] sm:w-[260px] snap-start bg-white border border-slate-100">
-          <div class="absolute inset-0 z-0 flex items-center justify-center p-4 bg-slate-50/50 overflow-hidden">
-            <img alt="Platinum Whey" class="product-card-image max-h-[75%] max-w-[75%] object-contain mix-blend-multiply" loading="lazy" src="https://images.unsplash.com/photo-1546483875-ad9014c88eba?auto=format&fit=crop&w=600&q=80"/>
-          </div>
-          <div class="relative z-10 p-4 sm:p-5 flex flex-col items-start justify-end bg-gradient-to-t from-black/95 via-black/70 to-transparent w-full">
-            <h3 class="text-lg sm:text-xl font-bold text-white leading-tight mb-1">Platinum Whey</h3>
-            <p class="text-white/90 text-xs sm:text-sm font-normal leading-snug mb-3 line-clamp-2">25g Ultra-Pure Protein per serving for lean mass recovery.</p>
-            <div class="w-full"><a class="inline-flex items-center gap-1.5 bg-neutral-900 hover:bg-black text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-lg shadow transition-all duration-200" href="product-detail.php?id=1"><span>Buy now</span></a></div>
-          </div>
-        </article>
-
-        <!-- Card 2: Pure Creatine -->
-        <article class="product-card group relative rounded-xl overflow-hidden h-[340px] shadow-sm flex flex-col justify-end flex-none w-[240px] sm:w-[260px] snap-start bg-white border border-slate-100">
-          <div class="absolute inset-0 z-0 flex items-center justify-center p-4 bg-slate-50/50 overflow-hidden">
-            <img alt="Pure Creatine" class="product-card-image max-h-[75%] max-w-[75%] object-contain mix-blend-multiply" loading="lazy" src="https://images.unsplash.com/photo-1579722821273-0f6c7d44362f?auto=format&fit=crop&w=600&q=80"/>
-          </div>
-          <div class="relative z-10 p-4 sm:p-5 flex flex-col items-start justify-end bg-gradient-to-t from-black/95 via-black/70 to-transparent w-full">
-            <h3 class="text-lg sm:text-xl font-bold text-white leading-tight mb-1">Pure Creatine</h3>
-            <p class="text-white/90 text-xs sm:text-sm font-normal leading-snug mb-3 line-clamp-2">Micronized powder for explosive strength and muscle gains.</p>
-            <div class="w-full"><a class="inline-flex items-center gap-1.5 bg-neutral-900 hover:bg-black text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-lg shadow transition-all duration-200" href="product-detail.php?id=2"><span>Buy now</span></a></div>
-          </div>
-        </article>
-
-        <!-- Card 3: Vortex Pre-Workout -->
-        <article class="product-card group relative rounded-xl overflow-hidden h-[340px] shadow-sm flex flex-col justify-end flex-none w-[240px] sm:w-[260px] snap-start bg-white border border-slate-100">
-          <div class="absolute inset-0 z-0 flex items-center justify-center p-4 bg-slate-50/50 overflow-hidden">
-            <img alt="Vortex Pre-Workout" class="product-card-image max-h-[75%] max-w-[75%] object-contain mix-blend-multiply" loading="lazy" src="https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&w=600&q=80"/>
-          </div>
-          <div class="relative z-10 p-4 sm:p-5 flex flex-col items-start justify-end bg-gradient-to-t from-black/95 via-black/70 to-transparent w-full">
-            <h3 class="text-lg sm:text-xl font-bold text-white leading-tight mb-1">Vortex Pre-Workout</h3>
-            <p class="text-white/90 text-xs sm:text-sm font-normal leading-snug mb-3 line-clamp-2">Intense mental focus, massive pumps, and jitter-free energy.</p>
-            <div class="w-full"><a class="inline-flex items-center gap-1.5 bg-neutral-900 hover:bg-black text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-lg shadow transition-all duration-200" href="product-detail.php?id=3"><span>Buy now</span></a></div>
-          </div>
-        </article>
-
-        <!-- Card 4: BCAA Recovery -->
-        <article class="product-card group relative rounded-xl overflow-hidden h-[340px] shadow-sm flex flex-col justify-end flex-none w-[240px] sm:w-[260px] snap-start bg-white border border-slate-100">
-          <div class="absolute inset-0 z-0 flex items-center justify-center p-4 bg-slate-50/50 overflow-hidden">
-            <img alt="BCAA Recovery" class="product-card-image max-h-[75%] max-w-[75%] object-contain mix-blend-multiply" loading="lazy" src="https://images.unsplash.com/photo-1593095948071-474c5cc2989d?auto=format&fit=crop&w=600&q=80"/>
-          </div>
-          <div class="relative z-10 p-4 sm:p-5 flex flex-col items-start justify-end bg-gradient-to-t from-black/95 via-black/70 to-transparent w-full">
-            <h3 class="text-lg sm:text-xl font-bold text-white leading-tight mb-1">BCAA Recovery</h3>
-            <p class="text-white/90 text-xs sm:text-sm font-normal leading-snug mb-3 line-clamp-2">Advanced amino acids for reduced fatigue and faster repair.</p>
-            <div class="w-full"><a class="inline-flex items-center gap-1.5 bg-neutral-900 hover:bg-black text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-lg shadow transition-all duration-200" href="product-detail.php?id=4"><span>Buy now</span></a></div>
-          </div>
-        </article>
-
-        <!-- Card 5: Critical Mass Gainer -->
-        <article class="product-card group relative rounded-xl overflow-hidden h-[340px] shadow-sm flex flex-col justify-end flex-none w-[240px] sm:w-[260px] snap-start bg-white border border-slate-100">
-          <div class="absolute inset-0 z-0 flex items-center justify-center p-4 bg-slate-50/50 overflow-hidden">
-            <img alt="Critical Mass Gainer" class="product-card-image max-h-[75%] max-w-[75%] object-contain mix-blend-multiply" loading="lazy" src="https://images.unsplash.com/photo-1579722820308-d74e571900a0?auto=format&fit=crop&w=600&q=80"/>
-          </div>
-          <div class="relative z-10 p-4 sm:p-5 flex flex-col items-start justify-end bg-gradient-to-t from-black/95 via-black/70 to-transparent w-full">
-            <h3 class="text-lg sm:text-xl font-bold text-white leading-tight mb-1">Mass Gainer</h3>
-            <p class="text-white/90 text-xs sm:text-sm font-normal leading-snug mb-3 line-clamp-2">High calorie formula packed with clean carbs and proteins.</p>
-            <div class="w-full"><a class="inline-flex items-center gap-1.5 bg-neutral-900 hover:bg-black text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-lg shadow transition-all duration-200" href="product-detail.php?id=5"><span>Buy now</span></a></div>
-          </div>
-        </article>
-
-        <!-- Card 6: Hydro Lean L-Carnitine -->
-        <article class="product-card group relative rounded-xl overflow-hidden h-[340px] shadow-sm flex flex-col justify-end flex-none w-[240px] sm:w-[260px] snap-start bg-white border border-slate-100">
-          <div class="absolute inset-0 z-0 flex items-center justify-center p-4 bg-slate-50/50 overflow-hidden">
-            <img alt="Lean L-Carnitine" class="product-card-image max-h-[75%] max-w-[75%] object-contain mix-blend-multiply" loading="lazy" src="https://images.unsplash.com/photo-1546483875-ad9014c88eba?auto=format&fit=crop&w=600&q=80"/>
-          </div>
-          <div class="relative z-10 p-4 sm:p-5 flex flex-col items-start justify-end bg-gradient-to-t from-black/95 via-black/70 to-transparent w-full">
-            <h3 class="text-lg sm:text-xl font-bold text-white leading-tight mb-1">Lean L-Carnitine</h3>
-            <p class="text-white/90 text-xs sm:text-sm font-normal leading-snug mb-3 line-clamp-2">Converts stored body fat into usable cellular energy.</p>
-            <div class="w-full"><a class="inline-flex items-center gap-1.5 bg-neutral-900 hover:bg-black text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-lg shadow transition-all duration-200" href="product-detail.php?id=6"><span>Buy now</span></a></div>
-          </div>
-        </article>
-
-        <!-- Card 7: Omega-3 Fish Oil -->
-        <article class="product-card group relative rounded-xl overflow-hidden h-[340px] shadow-sm flex flex-col justify-end flex-none w-[240px] sm:w-[260px] snap-start bg-white border border-slate-100">
-          <div class="absolute inset-0 z-0 flex items-center justify-center p-4 bg-slate-50/50 overflow-hidden">
-            <img alt="Omega-3 Fish Oil" class="product-card-image max-h-[75%] max-w-[75%] object-contain mix-blend-multiply" loading="lazy" src="https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&w=600&q=80"/>
-          </div>
-          <div class="relative z-10 p-4 sm:p-5 flex flex-col items-start justify-end bg-gradient-to-t from-black/95 via-black/70 to-transparent w-full">
-            <h3 class="text-lg sm:text-xl font-bold text-white leading-tight mb-1">Omega-3 Elite</h3>
-            <p class="text-white/90 text-xs sm:text-sm font-normal leading-snug mb-3 line-clamp-2">Supports joint health, cardiovascular function, and recovery.</p>
-            <div class="w-full"><a class="inline-flex items-center gap-1.5 bg-neutral-900 hover:bg-black text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-lg shadow transition-all duration-200" href="product-detail.php?id=7"><span>Buy now</span></a></div>
-          </div>
-        </article>
-
-        <!-- Card 8: Multi-Vitamin Sport -->
-        <article class="product-card group relative rounded-xl overflow-hidden h-[340px] shadow-sm flex flex-col justify-end flex-none w-[240px] sm:w-[260px] snap-start bg-white border border-slate-100">
-          <div class="absolute inset-0 z-0 flex items-center justify-center p-4 bg-slate-50/50 overflow-hidden">
-            <img alt="Multi-Vitamin Sport" class="product-card-image max-h-[75%] max-w-[75%] object-contain mix-blend-multiply" loading="lazy" src="https://images.unsplash.com/photo-1579722821273-0f6c7d44362f?auto=format&fit=crop&w=600&q=80"/>
-          </div>
-          <div class="relative z-10 p-4 sm:p-5 flex flex-col items-start justify-end bg-gradient-to-t from-black/95 via-black/70 to-transparent w-full">
-            <h3 class="text-lg sm:text-xl font-bold text-white leading-tight mb-1">Sport Multivitamin</h3>
-            <p class="text-white/90 text-xs sm:text-sm font-normal leading-snug mb-3 line-clamp-2">Complete daily micronutrient profile designed for athletes.</p>
-            <div class="w-full"><a class="inline-flex items-center gap-1.5 bg-neutral-900 hover:bg-black text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-lg shadow transition-all duration-200" href="product-detail.php?id=8"><span>Buy now</span></a></div>
-          </div>
-        </article>
-
-        <!-- Card 9: ZMA Nighttime Recovery -->
-        <article class="product-card group relative rounded-xl overflow-hidden h-[340px] shadow-sm flex flex-col justify-end flex-none w-[240px] sm:w-[260px] snap-start bg-white border border-slate-100">
-          <div class="absolute inset-0 z-0 flex items-center justify-center p-4 bg-slate-50/50 overflow-hidden">
-            <img alt="ZMA Nighttime Recovery" class="product-card-image max-h-[75%] max-w-[75%] object-contain mix-blend-multiply" loading="lazy" src="https://images.unsplash.com/photo-1593095948071-474c5cc2989d?auto=format&fit=crop&w=600&q=80"/>
-          </div>
-          <div class="relative z-10 p-4 sm:p-5 flex flex-col items-start justify-end bg-gradient-to-t from-black/95 via-black/70 to-transparent w-full">
-            <h3 class="text-lg sm:text-xl font-bold text-white leading-tight mb-1">ZMA Sleep Formula</h3>
-            <p class="text-white/90 text-xs sm:text-sm font-normal leading-snug mb-3 line-clamp-2">Optimizes deep sleep cycles and natural hormone production.</p>
-            <div class="w-full"><a class="inline-flex items-center gap-1.5 bg-neutral-900 hover:bg-black text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-lg shadow transition-all duration-200" href="product-detail.php?id=9"><span>Buy now</span></a></div>
-          </div>
-        </article>
-
-        <!-- Card 10: Glutamine Powder -->
-        <article class="product-card group relative rounded-xl overflow-hidden h-[340px] shadow-sm flex flex-col justify-end flex-none w-[240px] sm:w-[260px] snap-start bg-white border border-slate-100">
-          <div class="absolute inset-0 z-0 flex items-center justify-center p-4 bg-slate-50/50 overflow-hidden">
-            <img alt="Glutamine Powder" class="product-card-image max-h-[75%] max-w-[75%] object-contain mix-blend-multiply" loading="lazy" src="https://images.unsplash.com/photo-1546483875-ad9014c88eba?auto=format&fit=crop&w=600&q=80"/>
-          </div>
-          <div class="relative z-10 p-4 sm:p-5 flex flex-col items-start justify-end bg-gradient-to-t from-black/95 via-black/70 to-transparent w-full">
-            <h3 class="text-lg sm:text-xl font-bold text-white leading-tight mb-1">Pure Glutamine</h3>
-            <p class="text-white/90 text-xs sm:text-sm font-normal leading-snug mb-3 line-clamp-2">Prevents muscle breakdown and supports immune health.</p>
-            <div class="w-full"><a class="inline-flex items-center gap-1.5 bg-neutral-900 hover:bg-black text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-lg shadow transition-all duration-200" href="product-detail.php?id=10"><span>Buy now</span></a></div>
-          </div>
-        </article>
-
-      </div>
-    </div>
-
-  </div>
-  <!-- END: Layout Container -->
-
-</section>
-<!-- END: FeaturedProductsSection -->
-
-<!-- Scoped JavaScript Component Loader -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
 <script>
-  (function() {
-    const wrapper = document.querySelector('section[aria-labelledby="featured-products-heading"]') || document;
-    const track = wrapper.querySelector('.product-slider-track');
-    const leftBtn = wrapper.querySelector('.scroll-left-btn');
-    const rightBtn = wrapper.querySelector('.scroll-right-btn');
+    tailwind.config = { theme: { extend: { fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] } } } }
+</script>
+<style>
+    .product-card { transition: transform .25s ease, box-shadow .25s ease; }
+    .product-card:hover { transform: translateY(-3px); box-shadow: 0 14px 28px -8px rgba(0,0,0,.1); }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+</style>
+</head>
+<body class="bg-white text-slate-800 font-sans antialiased min-h-screen py-6 sm:py-10 px-3 sm:px-6 lg:px-8">
 
-    if (!track) return;
+<div class="max-w-[1320px] mx-auto" data-purpose="catalog-layout">
+  <main class="w-full min-w-0" data-purpose="catalog-container">
 
-    let autoScrollTimer;
+    <!-- Browse Categories -->
+    <section class="mb-10 sm:mb-14" data-purpose="browse-categories">
+      <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Browse Categories</h2>
+      <p class="text-sm text-slate-500 mt-1">Find exactly what you need using</p>
+      <div id="cat-track" class="no-scrollbar flex gap-4 sm:gap-6 overflow-x-auto mt-6 sm:mt-8 pb-2 max-w-[1060px] mx-auto">
+        <button class="cat-tile group shrink-0 w-[96px] sm:w-[118px] flex flex-col items-center gap-2.5 text-center focus:outline-none" type="button">
+          <span class="cat-img block w-[96px] h-[96px] sm:w-[118px] sm:h-[118px] rounded-2xl sm:rounded-3xl bg-sky-50 border-2 border-transparent overflow-hidden transition-all group-hover:border-sky-200">
+            <img alt="Whey Protein" class="w-full h-full object-cover" loading="lazy" src="https://images.unsplash.com/photo-1546483875-ad9014c88eba?auto=format&amp;fit=crop&amp;w=300&amp;q=80"/>
+          </span>
+          <span class="text-[12px] sm:text-[13px] font-medium text-slate-600 leading-tight">Whey Protein</span>
+        </button>
+        <button class="cat-tile group shrink-0 w-[96px] sm:w-[118px] flex flex-col items-center gap-2.5 text-center focus:outline-none" type="button">
+          <span class="cat-img block w-[96px] h-[96px] sm:w-[118px] sm:h-[118px] rounded-2xl sm:rounded-3xl bg-sky-50 border-2 border-transparent overflow-hidden transition-all group-hover:border-sky-200">
+            <img alt="Creatine" class="w-full h-full object-cover" loading="lazy" src="https://images.unsplash.com/photo-1579722821273-0f6c7d44362f?auto=format&amp;fit=crop&amp;w=300&amp;q=80"/>
+          </span>
+          <span class="text-[12px] sm:text-[13px] font-medium text-slate-600 leading-tight">Creatine</span>
+        </button>
+        <button class="cat-tile group shrink-0 w-[96px] sm:w-[118px] flex flex-col items-center gap-2.5 text-center focus:outline-none" type="button">
+          <span class="cat-img block w-[96px] h-[96px] sm:w-[118px] sm:h-[118px] rounded-2xl sm:rounded-3xl bg-sky-50 border-2 border-transparent overflow-hidden transition-all group-hover:border-sky-200">
+            <img alt="Pre-Workout" class="w-full h-full object-cover" loading="lazy" src="https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&amp;fit=crop&amp;w=300&amp;q=80"/>
+          </span>
+          <span class="text-[12px] sm:text-[13px] font-medium text-slate-600 leading-tight">Pre-Workout</span>
+        </button>
+        <button class="cat-tile group shrink-0 w-[96px] sm:w-[118px] flex flex-col items-center gap-2.5 text-center focus:outline-none" type="button">
+          <span class="cat-img block w-[96px] h-[96px] sm:w-[118px] sm:h-[118px] rounded-2xl sm:rounded-3xl bg-sky-50 border-2 border-transparent overflow-hidden transition-all group-hover:border-sky-200">
+            <img alt="Mass Gainers" class="w-full h-full object-cover" loading="lazy" src="https://images.unsplash.com/photo-1576678927484-cc907957088c?auto=format&amp;fit=crop&amp;w=300&amp;q=80"/>
+          </span>
+          <span class="text-[12px] sm:text-[13px] font-medium text-slate-600 leading-tight">Mass Gainers</span>
+        </button>
+        <button class="cat-tile group shrink-0 w-[96px] sm:w-[118px] flex flex-col items-center gap-2.5 text-center focus:outline-none" type="button">
+          <span class="cat-img block w-[96px] h-[96px] sm:w-[118px] sm:h-[118px] rounded-2xl sm:rounded-3xl bg-sky-50 border-2 border-transparent overflow-hidden transition-all group-hover:border-sky-200">
+            <img alt="Amino Acids" class="w-full h-full object-cover" loading="lazy" src="https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&amp;fit=crop&amp;w=300&amp;q=80"/>
+          </span>
+          <span class="text-[12px] sm:text-[13px] font-medium text-slate-600 leading-tight">Amino Acids</span>
+        </button>
+        <button class="cat-tile group shrink-0 w-[96px] sm:w-[118px] flex flex-col items-center gap-2.5 text-center focus:outline-none" type="button">
+          <span class="cat-img block w-[96px] h-[96px] sm:w-[118px] sm:h-[118px] rounded-2xl sm:rounded-3xl bg-sky-50 border-2 border-transparent overflow-hidden transition-all group-hover:border-sky-200">
+            <img alt="Recovery" class="w-full h-full object-cover" loading="lazy" src="https://images.unsplash.com/photo-1594882645126-14020914d58d?auto=format&amp;fit=crop&amp;w=300&amp;q=80"/>
+          </span>
+          <span class="text-[12px] sm:text-[13px] font-medium text-slate-600 leading-tight">Recovery</span>
+        </button>
+        <button class="cat-tile group shrink-0 w-[96px] sm:w-[118px] flex flex-col items-center gap-2.5 text-center focus:outline-none" type="button">
+          <span class="cat-img block w-[96px] h-[96px] sm:w-[118px] sm:h-[118px] rounded-2xl sm:rounded-3xl bg-sky-50 border-2 border-transparent overflow-hidden transition-all group-hover:border-sky-200">
+            <img alt="Fat Burners" class="w-full h-full object-cover" loading="lazy" src="https://images.unsplash.com/photo-1550572017-edd951b55104?auto=format&amp;fit=crop&amp;w=300&amp;q=80"/>
+          </span>
+          <span class="text-[12px] sm:text-[13px] font-medium text-slate-600 leading-tight">Fat Burners</span>
+        </button>
+        <button class="cat-tile group shrink-0 w-[96px] sm:w-[118px] flex flex-col items-center gap-2.5 text-center focus:outline-none" type="button">
+          <span class="cat-img block w-[96px] h-[96px] sm:w-[118px] sm:h-[118px] rounded-2xl sm:rounded-3xl bg-sky-50 border-2 border-transparent overflow-hidden transition-all group-hover:border-sky-200">
+            <img alt="Vitamins & Omega" class="w-full h-full object-cover" loading="lazy" src="https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&amp;fit=crop&amp;w=300&amp;q=80"/>
+          </span>
+          <span class="text-[12px] sm:text-[13px] font-medium text-slate-600 leading-tight">Vitamins &amp; Omega</span>
+        </button>
+      </div>
+    </section>
 
-    function scrollTrack(direction) {
-      const scrollAmount = 260;
-      track.scrollBy({ left: direction * scrollAmount, behavior: 'smooth' });
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+      <div>
+        <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">Pro Gym Supplements</h1>
+        <p class="text-xs text-slate-500 mt-0.5">Showing affordable fitness formulas for maximum gains</p>
+      </div>
+      <div class="flex items-center justify-between sm:justify-end gap-2 text-xs font-semibold text-slate-700">
+        <span>Sort by:</span>
+        <select class="bg-white border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-sky-500 focus:border-sky-500">
+          <option>Featured Products</option>
+          <option>Price: Low to High</option>
+          <option>Price: High to Low</option>
+          <option>Customer Rating</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Responsive grid: 2 per row on mobile, then 3 / 4 / 5 per row as the screen widens -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-5">
+
+      <!-- Product 1 -->
+      <article class="product-card relative flex flex-col bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-slate-100 p-3 sm:p-4" data-purpose="product-card">
+        <span class="absolute top-3 left-3 sm:top-4 sm:left-4 z-10 bg-sky-500 text-white text-[10px] sm:text-xs font-extrabold px-2.5 py-1 rounded-full">7% OFF</span>
+        <a href="product/product-detail.php?id=1" class="flex items-center justify-center h-32 sm:h-44 mb-3 sm:mb-4">
+          <img alt="Whey Protein Isolate" class="max-h-full max-w-[85%] object-contain" loading="lazy" src="https://images.unsplash.com/photo-1546483875-ad9014c88eba?auto=format&amp;fit=crop&amp;w=500&amp;q=80"/>
+        </a>
+        <a href="product/product-detail.php?id=1" class="block text-[13px] sm:text-[15px] text-slate-700 leading-snug line-clamp-2 min-h-[2.4rem] sm:min-h-[2.6rem] hover:text-sky-600 transition-colors">Apex Platinum Whey Isolate</a>
+        <div class="flex items-center gap-1 mt-1 text-xs">
+          <i class="fa-solid fa-star text-amber-400 text-[11px]"></i>
+          <span class="font-bold text-slate-800">4.9</span>
+          <span class="text-slate-400">(24)</span>
+        </div>
+        <div class="flex items-end justify-between gap-2 mt-auto pt-2">
+          <div class="flex flex-wrap items-baseline gap-x-1.5 min-w-0">
+            <span class="text-[14px] sm:text-lg font-extrabold text-slate-900 whitespace-nowrap">UGX 185,000</span>
+            <span class="text-[11px] text-slate-400 whitespace-nowrap">/2kg</span>
+            <span class="text-[11px] sm:text-xs text-slate-400 line-through whitespace-nowrap">199,000</span>
+          </div>
+          <button aria-label="Add Whey Protein Isolate to cart" class="add-btn shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-sky-500 hover:bg-sky-600 text-white flex items-center justify-center transition-colors active:scale-95" type="button">
+            <i class="fa-solid fa-plus text-xs sm:text-sm"></i>
+          </button>
+        </div>
+      </article>
+
+      <!-- Product 2 -->
+      <article class="product-card relative flex flex-col bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-slate-100 p-3 sm:p-4" data-purpose="product-card">
+        <span class="absolute top-3 left-3 sm:top-4 sm:left-4 z-10 bg-sky-500 text-white text-[10px] sm:text-xs font-extrabold px-2.5 py-1 rounded-full">8% OFF</span>
+        <a href="product/product-detail.php?id=2" class="flex items-center justify-center h-32 sm:h-44 mb-3 sm:mb-4">
+          <img alt="Micronized Creatine Monohydrate" class="max-h-full max-w-[85%] object-contain" loading="lazy" src="https://images.unsplash.com/photo-1579722821273-0f6c7d44362f?auto=format&amp;fit=crop&amp;w=500&amp;q=80"/>
+        </a>
+        <a href="product/product-detail.php?id=2" class="block text-[13px] sm:text-[15px] text-slate-700 leading-snug line-clamp-2 min-h-[2.4rem] sm:min-h-[2.6rem] hover:text-sky-600 transition-colors">Pure Creatine Monohydrate</a>
+        <div class="flex items-center gap-1 mt-1 text-xs">
+          <i class="fa-solid fa-star text-amber-400 text-[11px]"></i>
+          <span class="font-bold text-slate-800">4.8</span>
+          <span class="text-slate-400">(18)</span>
+        </div>
+        <div class="flex items-end justify-between gap-2 mt-auto pt-2">
+          <div class="flex flex-wrap items-baseline gap-x-1.5 min-w-0">
+            <span class="text-[14px] sm:text-lg font-extrabold text-slate-900 whitespace-nowrap">UGX 115,000</span>
+            <span class="text-[11px] text-slate-400 whitespace-nowrap">/300g</span>
+            <span class="text-[11px] sm:text-xs text-slate-400 line-through whitespace-nowrap">125,000</span>
+          </div>
+          <button aria-label="Add Micronized Creatine Monohydrate to cart" class="add-btn shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-sky-500 hover:bg-sky-600 text-white flex items-center justify-center transition-colors active:scale-95" type="button">
+            <i class="fa-solid fa-plus text-xs sm:text-sm"></i>
+          </button>
+        </div>
+      </article>
+
+      <!-- Product 3 -->
+      <article class="product-card relative flex flex-col bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-slate-100 p-3 sm:p-4" data-purpose="product-card">
+        <span class="absolute top-3 left-3 sm:top-4 sm:left-4 z-10 bg-sky-500 text-white text-[10px] sm:text-xs font-extrabold px-2.5 py-1 rounded-full">10% OFF</span>
+        <a href="product/product-detail.php?id=3" class="flex items-center justify-center h-32 sm:h-44 mb-3 sm:mb-4">
+          <img alt="Pre-Workout Energy Formula" class="max-h-full max-w-[85%] object-contain" loading="lazy" src="https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&amp;fit=crop&amp;w=500&amp;q=80"/>
+        </a>
+        <a href="product/product-detail.php?id=3" class="block text-[13px] sm:text-[15px] text-slate-700 leading-snug line-clamp-2 min-h-[2.4rem] sm:min-h-[2.6rem] hover:text-sky-600 transition-colors">Vortex Pre-Workout Blast</a>
+        <div class="flex items-center gap-1 mt-1 text-xs">
+          <i class="fa-solid fa-star text-amber-400 text-[11px]"></i>
+          <span class="font-bold text-slate-800">4.7</span>
+          <span class="text-slate-400">(15)</span>
+        </div>
+        <div class="flex items-end justify-between gap-2 mt-auto pt-2">
+          <div class="flex flex-wrap items-baseline gap-x-1.5 min-w-0">
+            <span class="text-[14px] sm:text-lg font-extrabold text-slate-900 whitespace-nowrap">UGX 135,000</span>
+            <span class="text-[11px] text-slate-400 whitespace-nowrap">/30 serv</span>
+            <span class="text-[11px] sm:text-xs text-slate-400 line-through whitespace-nowrap">150,000</span>
+          </div>
+          <button aria-label="Add Pre-Workout Energy Formula to cart" class="add-btn shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-sky-500 hover:bg-sky-600 text-white flex items-center justify-center transition-colors active:scale-95" type="button">
+            <i class="fa-solid fa-plus text-xs sm:text-sm"></i>
+          </button>
+        </div>
+      </article>
+
+      <!-- Product 4 -->
+      <article class="product-card relative flex flex-col bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-slate-100 p-3 sm:p-4" data-purpose="product-card">
+        <span class="absolute top-3 left-3 sm:top-4 sm:left-4 z-10 bg-sky-500 text-white text-[10px] sm:text-xs font-extrabold px-2.5 py-1 rounded-full">8% OFF</span>
+        <a href="product/product-detail.php?id=4" class="flex items-center justify-center h-32 sm:h-44 mb-3 sm:mb-4">
+          <img alt="Mass Gainer Protein Tub" class="max-h-full max-w-[85%] object-contain" loading="lazy" src="https://images.unsplash.com/photo-1576678927484-cc907957088c?auto=format&amp;fit=crop&amp;w=500&amp;q=80"/>
+        </a>
+        <a href="product/product-detail.php?id=4" class="block text-[13px] sm:text-[15px] text-slate-700 leading-snug line-clamp-2 min-h-[2.4rem] sm:min-h-[2.6rem] hover:text-sky-600 transition-colors">Titan Mass Gainer 1000</a>
+        <div class="flex items-center gap-1 mt-1 text-xs">
+          <i class="fa-solid fa-star text-amber-400 text-[11px]"></i>
+          <span class="font-bold text-slate-800">4.6</span>
+          <span class="text-slate-400">(12)</span>
+        </div>
+        <div class="flex items-end justify-between gap-2 mt-auto pt-2">
+          <div class="flex flex-wrap items-baseline gap-x-1.5 min-w-0">
+            <span class="text-[14px] sm:text-lg font-extrabold text-slate-900 whitespace-nowrap">UGX 220,000</span>
+            <span class="text-[11px] text-slate-400 whitespace-nowrap">/5kg</span>
+            <span class="text-[11px] sm:text-xs text-slate-400 line-through whitespace-nowrap">240,000</span>
+          </div>
+          <button aria-label="Add Mass Gainer Protein Tub to cart" class="add-btn shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-sky-500 hover:bg-sky-600 text-white flex items-center justify-center transition-colors active:scale-95" type="button">
+            <i class="fa-solid fa-plus text-xs sm:text-sm"></i>
+          </button>
+        </div>
+      </article>
+
+      <!-- Product 5 -->
+      <article class="product-card relative flex flex-col bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-slate-100 p-3 sm:p-4" data-purpose="product-card">
+        <span class="absolute top-3 left-3 sm:top-4 sm:left-4 z-10 bg-sky-500 text-white text-[10px] sm:text-xs font-extrabold px-2.5 py-1 rounded-full">5% OFF</span>
+        <a href="product/product-detail.php?id=5" class="flex items-center justify-center h-32 sm:h-44 mb-3 sm:mb-4">
+          <img alt="BCAA Amino Supplement" class="max-h-full max-w-[85%] object-contain" loading="lazy" src="https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&amp;fit=crop&amp;w=500&amp;q=80"/>
+        </a>
+        <a href="product/product-detail.php?id=5" class="block text-[13px] sm:text-[15px] text-slate-700 leading-snug line-clamp-2 min-h-[2.4rem] sm:min-h-[2.6rem] hover:text-sky-600 transition-colors">BCAA 2:1:1 Recovery Matrix</a>
+        <div class="flex items-center gap-1 mt-1 text-xs">
+          <i class="fa-solid fa-star text-amber-400 text-[11px]"></i>
+          <span class="font-bold text-slate-800">4.8</span>
+          <span class="text-slate-400">(20)</span>
+        </div>
+        <div class="flex items-end justify-between gap-2 mt-auto pt-2">
+          <div class="flex flex-wrap items-baseline gap-x-1.5 min-w-0">
+            <span class="text-[14px] sm:text-lg font-extrabold text-slate-900 whitespace-nowrap">UGX 95,000</span>
+            <span class="text-[11px] text-slate-400 whitespace-nowrap">/400g</span>
+            <span class="text-[11px] sm:text-xs text-slate-400 line-through whitespace-nowrap">100,000</span>
+          </div>
+          <button aria-label="Add BCAA Amino Supplement to cart" class="add-btn shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-sky-500 hover:bg-sky-600 text-white flex items-center justify-center transition-colors active:scale-95" type="button">
+            <i class="fa-solid fa-plus text-xs sm:text-sm"></i>
+          </button>
+        </div>
+      </article>
+
+      <!-- Product 6 -->
+      <article class="product-card relative flex flex-col bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-slate-100 p-3 sm:p-4" data-purpose="product-card">
+        <span class="absolute top-3 left-3 sm:top-4 sm:left-4 z-10 bg-sky-500 text-white text-[10px] sm:text-xs font-extrabold px-2.5 py-1 rounded-full">6% OFF</span>
+        <a href="product/product-detail.php?id=6" class="flex items-center justify-center h-32 sm:h-44 mb-3 sm:mb-4">
+          <img alt="Glutamine Powder" class="max-h-full max-w-[85%] object-contain" loading="lazy" src="https://images.unsplash.com/photo-1594882645126-14020914d58d?auto=format&amp;fit=crop&amp;w=500&amp;q=80"/>
+        </a>
+        <a href="product/product-detail.php?id=6" class="block text-[13px] sm:text-[15px] text-slate-700 leading-snug line-clamp-2 min-h-[2.4rem] sm:min-h-[2.6rem] hover:text-sky-600 transition-colors">Pure L-Glutamine Powder</a>
+        <div class="flex items-center gap-1 mt-1 text-xs">
+          <i class="fa-solid fa-star text-amber-400 text-[11px]"></i>
+          <span class="font-bold text-slate-800">4.5</span>
+          <span class="text-slate-400">(9)</span>
+        </div>
+        <div class="flex items-end justify-between gap-2 mt-auto pt-2">
+          <div class="flex flex-wrap items-baseline gap-x-1.5 min-w-0">
+            <span class="text-[14px] sm:text-lg font-extrabold text-slate-900 whitespace-nowrap">UGX 85,000</span>
+            <span class="text-[11px] text-slate-400 whitespace-nowrap">/300g</span>
+            <span class="text-[11px] sm:text-xs text-slate-400 line-through whitespace-nowrap">90,000</span>
+          </div>
+          <button aria-label="Add Glutamine Powder to cart" class="add-btn shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-sky-500 hover:bg-sky-600 text-white flex items-center justify-center transition-colors active:scale-95" type="button">
+            <i class="fa-solid fa-plus text-xs sm:text-sm"></i>
+          </button>
+        </div>
+      </article>
+
+      <!-- Product 7 -->
+      <article class="product-card relative flex flex-col bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-slate-100 p-3 sm:p-4" data-purpose="product-card">
+        <span class="absolute top-3 left-3 sm:top-4 sm:left-4 z-10 bg-sky-500 text-white text-[10px] sm:text-xs font-extrabold px-2.5 py-1 rounded-full">11% OFF</span>
+        <a href="product/product-detail.php?id=7" class="flex items-center justify-center h-32 sm:h-44 mb-3 sm:mb-4">
+          <img alt="Thermo Shred Capsules" class="max-h-full max-w-[85%] object-contain" loading="lazy" src="https://images.unsplash.com/photo-1550572017-edd951b55104?auto=format&amp;fit=crop&amp;w=500&amp;q=80"/>
+        </a>
+        <a href="product/product-detail.php?id=7" class="block text-[13px] sm:text-[15px] text-slate-700 leading-snug line-clamp-2 min-h-[2.4rem] sm:min-h-[2.6rem] hover:text-sky-600 transition-colors">ThermoShred Pro Capsules</a>
+        <div class="flex items-center gap-1 mt-1 text-xs">
+          <i class="fa-solid fa-star text-amber-400 text-[11px]"></i>
+          <span class="font-bold text-slate-800">4.7</span>
+          <span class="text-slate-400">(14)</span>
+        </div>
+        <div class="flex items-end justify-between gap-2 mt-auto pt-2">
+          <div class="flex flex-wrap items-baseline gap-x-1.5 min-w-0">
+            <span class="text-[14px] sm:text-lg font-extrabold text-slate-900 whitespace-nowrap">UGX 125,000</span>
+            <span class="text-[11px] text-slate-400 whitespace-nowrap">/60 caps</span>
+            <span class="text-[11px] sm:text-xs text-slate-400 line-through whitespace-nowrap">140,000</span>
+          </div>
+          <button aria-label="Add Thermo Shred Capsules to cart" class="add-btn shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-sky-500 hover:bg-sky-600 text-white flex items-center justify-center transition-colors active:scale-95" type="button">
+            <i class="fa-solid fa-plus text-xs sm:text-sm"></i>
+          </button>
+        </div>
+      </article>
+
+      <!-- Product 8 -->
+      <article class="product-card relative flex flex-col bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-slate-100 p-3 sm:p-4" data-purpose="product-card">
+        <span class="absolute top-3 left-3 sm:top-4 sm:left-4 z-10 bg-sky-500 text-white text-[10px] sm:text-xs font-extrabold px-2.5 py-1 rounded-full">6% OFF</span>
+        <a href="product/product-detail.php?id=8" class="flex items-center justify-center h-32 sm:h-44 mb-3 sm:mb-4">
+          <img alt="Omega 3 Fish Oil Softgels" class="max-h-full max-w-[85%] object-contain" loading="lazy" src="https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&amp;fit=crop&amp;w=500&amp;q=80"/>
+        </a>
+        <a href="product/product-detail.php?id=8" class="block text-[13px] sm:text-[15px] text-slate-700 leading-snug line-clamp-2 min-h-[2.4rem] sm:min-h-[2.6rem] hover:text-sky-600 transition-colors">Omega-3 Triple Strength</a>
+        <div class="flex items-center gap-1 mt-1 text-xs">
+          <i class="fa-solid fa-star text-amber-400 text-[11px]"></i>
+          <span class="font-bold text-slate-800">4.9</span>
+          <span class="text-slate-400">(31)</span>
+        </div>
+        <div class="flex items-end justify-between gap-2 mt-auto pt-2">
+          <div class="flex flex-wrap items-baseline gap-x-1.5 min-w-0">
+            <span class="text-[14px] sm:text-lg font-extrabold text-slate-900 whitespace-nowrap">UGX 75,000</span>
+            <span class="text-[11px] text-slate-400 whitespace-nowrap">/90 caps</span>
+            <span class="text-[11px] sm:text-xs text-slate-400 line-through whitespace-nowrap">80,000</span>
+          </div>
+          <button aria-label="Add Omega 3 Fish Oil Softgels to cart" class="add-btn shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-sky-500 hover:bg-sky-600 text-white flex items-center justify-center transition-colors active:scale-95" type="button">
+            <i class="fa-solid fa-plus text-xs sm:text-sm"></i>
+          </button>
+        </div>
+      </article>
+
+    </div>
+
+  </main>
+</div>
+
+<script data-purpose="interactive-scripts">
+  document.querySelectorAll('.add-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const icon = btn.querySelector('i');
+      icon.className = 'fa-solid fa-check text-xs sm:text-sm';
+      setTimeout(() => icon.className = 'fa-solid fa-plus text-xs sm:text-sm', 900);
+    });
+  });
+
+  // ---- Categories: auto-sliding row (loops forever, pauses on touch/hover) ----
+  (function () {
+    const track = document.getElementById('cat-track');
+    const originals = Array.from(track.querySelectorAll('.cat-tile'));
+    originals.forEach((t, i) => t.dataset.idx = i);
+
+    originals.forEach(t => {
+      const c = t.cloneNode(true);
+      c.setAttribute('aria-hidden', 'true');
+      c.tabIndex = -1;
+      track.appendChild(c);
+    });
+
+    track.addEventListener('click', e => {
+      const tile = e.target.closest('.cat-tile');
+      if (!tile) return;
+      track.querySelectorAll('.cat-img').forEach(box => {
+        box.classList.remove('border-sky-400');
+        box.classList.add('border-transparent');
+      });
+      track.querySelectorAll('.cat-tile[data-idx="' + tile.dataset.idx + '"] .cat-img').forEach(box => {
+        box.classList.remove('border-transparent');
+        box.classList.add('border-sky-400');
+      });
+    });
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const SPEED = 40;
+    let pos = 0, last = null, paused = false, resumeTimer = null;
+
+    function loopWidth() {
+      return track.children[originals.length].offsetLeft - track.children[0].offsetLeft;
+    }
+    function pause() { paused = true; clearTimeout(resumeTimer); }
+    function resume(delay) {
+      clearTimeout(resumeTimer);
+      resumeTimer = setTimeout(() => { pos = track.scrollLeft; paused = false; }, delay);
     }
 
-    if (leftBtn) leftBtn.addEventListener('click', () => scrollTrack(-1));
-    if (rightBtn) rightBtn.addEventListener('click', () => scrollTrack(1));
+    track.addEventListener('mouseenter', pause);
+    track.addEventListener('mouseleave', () => resume(300));
+    track.addEventListener('touchstart', pause, { passive: true });
+    track.addEventListener('touchend', () => resume(1800), { passive: true });
+    track.addEventListener('wheel', () => { pause(); resume(1800); }, { passive: true });
 
-    function startAutoSlide() {
-      autoScrollTimer = setInterval(() => {
-        if (track.scrollLeft + track.clientWidth >= track.scrollWidth - 10) {
-          track.scrollTo({ left: 0, behavior: 'smooth' });
-        } else {
-          track.scrollBy({ left: 260, behavior: 'smooth' });
-        }
-      }, 3500);
+    function step(ts) {
+      if (last === null) last = ts;
+      const dt = Math.min((ts - last) / 1000, 0.1);
+      last = ts;
+      if (!paused) {
+        pos += SPEED * dt;
+        const w = loopWidth();
+        if (w > 0 && pos >= w) pos -= w;
+        track.scrollLeft = pos;
+      }
+      requestAnimationFrame(step);
     }
-
-    function stopAutoSlide() {
-      clearInterval(autoScrollTimer);
-    }
-
-    startAutoSlide();
-
-    track.addEventListener('mouseenter', stopAutoSlide);
-    track.addEventListener('mouseleave', startAutoSlide);
-    track.addEventListener('touchstart', stopAutoSlide);
+    requestAnimationFrame(step);
   })();
 </script>
-
 </body>
 </html>

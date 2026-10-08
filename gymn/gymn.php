@@ -1,211 +1,146 @@
 <!DOCTYPE html>
-<html lang="en" class="scroll-smooth">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IronVault - Supplements & Gym Training</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        /* Initial state for JS scroll animations */
-        .animate-on-scroll {
-            opacity: 0;
-            transform: translateY(25px);
-            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
-        }
-        .animate-on-scroll.is-visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        /* Ripple effect styling */
-        .ripple {
-            position: absolute;
-            background: rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            transform: scale(0);
-            animation: ripple-effect 0.6s linear;
-            pointer-events: none;
-        }
-        @keyframes ripple-effect {
-            to {
-                transform: scale(4);
-                opacity: 0;
-            }
-        }
-    </style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Pure gain - Gym Training & Services</title>
+<link href="../src/output.css" rel="stylesheet">
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script>
+  tailwind.config = { theme: { extend: { fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] } } } }
+</script>
+<style>
+  body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-font-smoothing: antialiased; }
+  .banner-gradient {
+    background: radial-gradient(circle at 50% 40%, #EFF4FB 0%, #DFE8F5 100%);
+    box-shadow: 0 25px 60px -15px rgba(16,58,199,.2), 0 10px 25px -5px rgba(0,0,0,.05);
+    border: 1px solid rgba(255,255,255,.8);
+  }
+  .lift { transition: transform .25s ease, box-shadow .25s ease; }
+  .lift:hover { transform: translateY(-3px); box-shadow: 0 14px 28px -8px rgba(0,0,0,.12); }
+</style>
 </head>
-<body class="bg-slate-50 font-sans text-slate-800">
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
 
-  
-    <main>
-        <!-- Gym Services & Membership Section -->
-        <section class="max-w-7xl mx-auto px-4 py-12 border-t border-slate-200">
-            
-            <!-- Section Header -->
-            <div class="text-center mb-12 animate-on-scroll">
-                <span class="text-blue-600 font-semibold text-sm uppercase tracking-wider">Elite Training & Facilities</span>
-                <h2 class="text-3xl font-bold tracking-tight text-slate-900 mt-1">Gym Services & Membership Plans</h2>
-                <p class="text-slate-600 max-w-2xl mx-auto mt-2">Take your physique to the next level with state-of-the-art equipment, professional trainers, and specialized fitness schedules.</p>
-            </div>
-
-            <!-- Core Services Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
-                <!-- Service Card 1 -->
-                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm animate-on-scroll transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
-                    <div class="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold mb-4">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"></path></svg>
-                    </div>
-                    <h3 class="text-lg font-semibold text-slate-900 mb-2">Strength & Conditioning</h3>
-                    <p class="text-slate-600 text-sm">Full access to heavy-duty racks, Olympic weights, pin-loaded machines, and turf areas optimized for progressive overload.</p>
-                </div>
-
-                <!-- Service Card 2 -->
-                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm animate-on-scroll transition-all duration-300 hover:-translate-y-1 hover:shadow-md" style="transition-delay: 100ms;">
-                    <div class="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold mb-4">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                    </div>
-                    <h3 class="text-lg font-semibold text-slate-900 mb-2">Personal Training</h3>
-                    <p class="text-slate-600 text-sm">One-on-one coaching tailored to your body type, incorporating customized workout splits, form correction, and body composition tracking.</p>
-                </div>
-
-                <!-- Service Card 3 -->
-                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm animate-on-scroll transition-all duration-300 hover:-translate-y-1 hover:shadow-md" style="transition-delay: 200ms;">
-                    <div class="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold mb-4">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
-                    </div>
-                    <h3 class="text-lg font-semibold text-slate-900 mb-2">Supplement & Diet Stacks</h3>
-                    <p class="text-slate-600 text-sm">Integrated nutrition plans combining rigorous training with professional supplementation guidance for maximum lean mass gains.</p>
-                </div>
-            </div>
-
-            <!-- Pricing Tiers Grid -->
-            <div class="mb-16">
-                <h3 class="text-2xl font-bold text-center text-slate-900 mb-8 animate-on-scroll">Membership & Training Pricing</h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    
-                    <!-- Tier 1 -->
-                    <div class="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm flex flex-col justify-between animate-on-scroll transition-all duration-300 hover:shadow-lg">
-                        <div>
-                            <span class="text-xs font-semibold uppercase tracking-wider text-blue-600 bg-blue-50 px-3 py-1 rounded-full">Standard Pass</span>
-                            <h4 class="text-xl font-bold text-slate-900 mt-4">Daily / Monthly Access</h4>
-                            <p class="text-slate-500 text-sm mt-1">Great for flexible gym schedules.</p>
-                            <div class="mt-6 mb-6">
-                                <span class="text-3xl font-extrabold text-slate-900">UGX 25,000</span>
-                                <span class="text-slate-500 text-sm"> / day</span>
-                                <div class="text-slate-600 text-sm font-medium mt-1">or UGX 180,000 / month</div>
-                            </div>
-                            <ul class="space-y-3 text-sm text-slate-600">
-                                <li class="flex items-center gap-2">✓ Full floor equipment access</li>
-                                <li class="flex items-center gap-2">✓ Locker room & shower access</li>
-                                <li class="flex items-center gap-2">✓ Free fitness assessment</li>
-                            </ul>
-                        </div>
-                        <button class="ripple-btn relative overflow-hidden mt-8 w-full py-3 px-4 rounded-lg bg-black text-white font-medium text-sm tracking-wide transform transition-all duration-300 ease-in-out hover:bg-slate-900 hover:scale-[1.02] hover:shadow-xl active:scale-[0.98]">Choose Plan</button>
-                    </div>
-
-                    <!-- Tier 2 (Highlighted) -->
-                    <div class="bg-slate-900 text-white rounded-2xl p-8 shadow-lg flex flex-col justify-between relative ring-2 ring-blue-500 animate-on-scroll transition-all duration-300 hover:shadow-2xl" style="transition-delay: 100ms;">
-                        <span class="absolute -top-3 right-6 bg-blue-600 text-white text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider">Most Popular</span>
-                        <div>
-                            <span class="text-xs font-semibold uppercase tracking-wider text-blue-400 bg-blue-950 px-3 py-1 rounded-full">Pro All-Access</span>
-                            <h4 class="text-xl font-bold mt-4">Monthly VIP Pass</h4>
-                            <p class="text-slate-400 text-sm mt-1">Total package for dedicated athletes.</p>
-                            <div class="mt-6 mb-6">
-                                <span class="text-3xl font-extrabold">UGX 250,000</span>
-                                <span class="text-slate-400 text-sm"> / month</span>
-                            </div>
-                            <ul class="space-y-3 text-sm text-slate-300">
-                                <li class="flex items-center gap-2">✓ 24/7 Unlimited Gym Access</li>
-                                <li class="flex items-center gap-2">✓ 1 Free Personal Training Session / mo</li>
-                                <li class="flex items-center gap-2">✓ 15% discount on all supplements</li>
-                                <li class="flex items-center gap-2">✓ Free guest pass per month</li>
-                            </ul>
-                        </div>
-                        <button class="ripple-btn relative overflow-hidden mt-8 w-full py-3 px-4 rounded-lg bg-black text-white font-medium text-sm tracking-wide border border-slate-800 transform transition-all duration-300 ease-in-out hover:bg-slate-900 hover:scale-[1.02] hover:shadow-xl hover:shadow-blue-500/10 active:scale-[0.98]">Join Pro Club</button>
-                    </div>
-
-                    <!-- Tier 3 -->
-                    <div class="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm flex flex-col justify-between animate-on-scroll transition-all duration-300 hover:shadow-lg" style="transition-delay: 200ms;">
-                        <div>
-                            <span class="text-xs font-semibold uppercase tracking-wider text-blue-600 bg-blue-50 px-3 py-1 rounded-full">Personal Coaching</span>
-                            <h4 class="text-xl font-bold text-slate-900 mt-4">1-on-1 Trainer Package</h4>
-                            <p class="text-slate-500 text-sm mt-1">Custom routines & direct coaching.</p>
-                            <div class="mt-6 mb-6">
-                                <span class="text-3xl font-extrabold text-slate-900">UGX 200,000</span>
-                                <span class="text-slate-500 text-sm"> / 12 sessions</span>
-                            </div>
-                            <ul class="space-y-3 text-sm text-slate-600">
-                                <li class="flex items-center gap-2">✓ Dedicated professional trainer</li>
-                                <li class="flex items-center gap-2">✓ Custom diet and macro scheduling</li>
-                                <li class="flex items-center gap-2">✓ Bi-weekly progress & body scans</li>
-                            </ul>
-                        </div>
-                        <button class="ripple-btn relative overflow-hidden mt-8 w-full py-3 px-4 rounded-lg bg-black text-white font-medium text-sm tracking-wide transform transition-all duration-300 ease-in-out hover:bg-slate-900 hover:scale-[1.02] hover:shadow-xl active:scale-[0.98]">Book Coaching</button>
-                    </div>
-
-                </div>
-            </div>
-
-        
-        </section>
-    </main>
+<!-- Header -->
 
 
 
-    <!-- Custom JavaScript for Animations -->
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            // 1. Scroll Reveal Animation using Intersection Observer
-            const observerOptions = {
-                root: null,
-                rootMargin: '0px',
-                threshold: 0.15
-            };
 
-            const observer = new IntersectionObserver((entries, observer) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('is-visible');
-                        observer.unobserve(entry.target);
-                    }
-                });
-            }, observerOptions);
+<main class="flex-grow py-6 px-4 sm:px-6">
+<div class="max-w-[1060px] w-full mx-auto space-y-14">
 
-            document.querySelectorAll('.animate-on-scroll').forEach(el => {
-                observer.observe(el);
-            });
+  <!-- Hero -->
+  <section class="banner-gradient rounded-[2rem] px-6 sm:px-10 lg:px-14 py-10 md:py-14 text-center">
+    <p class="text-blue-600 text-[15px] font-semibold">Expert Coaching</p>
+    <h1 class="text-slate-900 text-3xl sm:text-4xl lg:text-[42px] font-extrabold tracking-tight leading-[1.2] mt-2 max-w-[640px] mx-auto">Gym Training & Services Built Around Your Goals</h1>
+    <p class="text-slate-500 text-sm sm:text-base mt-4 max-w-[520px] mx-auto">From one-on-one coaching to group classes and nutrition plans, everything you need to train smarter and see results.</p>
+    <div class="pt-6 flex flex-wrap items-center justify-center gap-4">
+      <a href="#plans" class="inline-flex px-7 py-3 rounded-full bg-blue-600 text-white font-semibold text-[14px] shadow-sm hover:bg-blue-700 transition-colors">View Plans</a>
+      <a href="book.php" class="inline-flex items-center gap-2 text-slate-800 font-medium text-[14px] hover:text-blue-600 transition-colors">Book a Free Tour <span>→</span></a>
+    </div>
+  </section>
 
-            // 2. Navbar dynamic shadow on scroll
-            const navbar = document.getElementById('navbar');
-            window.addEventListener('scroll', () => {
-                if (window.scrollY > 20) {
-                    navbar.classList.add('shadow-md', 'bg-white/95');
-                } else {
-                    navbar.classList.remove('shadow-md', 'bg-white/95');
-                }
-            });
+  <!-- Services -->
+  <section>
+    <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Our Services</h2>
+    <p class="text-sm text-slate-500 mt-1">Pick one, or combine them for faster progress</p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mt-6">
+      <article class="lift bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
+        <span class="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center text-lg"><i class="fa-solid fa-dumbbell"></i></span>
+        <h3 class="font-bold text-slate-900 text-lg mt-4">Personal Training</h3>
+        <p class="text-sm text-slate-500 mt-1.5 leading-relaxed">One-on-one sessions with a certified coach and a plan tailored to your body and goals.</p>
+      </article>
+      <article class="lift bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
+        <span class="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center text-lg"><i class="fa-solid fa-people-group"></i></span>
+        <h3 class="font-bold text-slate-900 text-lg mt-4">Group Classes</h3>
+        <p class="text-sm text-slate-500 mt-1.5 leading-relaxed">High-energy HIIT, strength and conditioning classes that keep you motivated.</p>
+      </article>
+      <article class="lift bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
+        <span class="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center text-lg"><i class="fa-solid fa-apple-whole"></i></span>
+        <h3 class="font-bold text-slate-900 text-lg mt-4">Nutrition Coaching</h3>
+        <p class="text-sm text-slate-500 mt-1.5 leading-relaxed">Meal guidance and supplement advice that fits your budget and local foods.</p>
+      </article>
+      <article class="lift bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
+        <span class="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center text-lg"><i class="fa-solid fa-weight-scale"></i></span>
+        <h3 class="font-bold text-slate-900 text-lg mt-4">Weight Loss Programs</h3>
+        <p class="text-sm text-slate-500 mt-1.5 leading-relaxed">Structured 8 and 12 week programs with weekly check-ins and progress tracking.</p>
+      </article>
+      <article class="lift bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
+        <span class="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center text-lg"><i class="fa-solid fa-person-running"></i></span>
+        <h3 class="font-bold text-slate-900 text-lg mt-4">Strength & Muscle Gain</h3>
+        <p class="text-sm text-slate-500 mt-1.5 leading-relaxed">Progressive overload programming to build size and strength safely.</p>
+      </article>
+      <article class="lift bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
+        <span class="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center text-lg"><i class="fa-solid fa-laptop"></i></span>
+        <h3 class="font-bold text-slate-900 text-lg mt-4">Online Coaching</h3>
+        <p class="text-sm text-slate-500 mt-1.5 leading-relaxed">Train anywhere with a custom plan, video feedback and chat support from your coach.</p>
+      </article>
+    </div>
+  </section>
 
-            // 3. Button Click Ripple Effect
-            document.querySelectorAll('.ripple-btn').forEach(button => {
-                button.addEventListener('click', function(e) {
-                    const rect = this.getBoundingClientRect();
-                    const x = e.clientX - rect.left;
-                    const y = e.clientY - rect.top;
+  <!-- Plans -->
+  <section id="plans">
+    <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Membership Plans</h2>
+    <p class="text-sm text-slate-500 mt-1">Simple monthly pricing, cancel anytime</p>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5 mt-6 items-stretch">
+      <article class="lift flex flex-col bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
+        <h3 class="font-bold text-slate-900 text-lg">Starter</h3>
+        <p class="mt-3"><span class="text-3xl font-extrabold text-slate-900">UGX 150,000</span><span class="text-sm text-slate-400"> /month</span></p>
+        <ul class="mt-5 space-y-2.5 text-sm text-slate-600 flex-grow">
+          <li><i class="fa-solid fa-check text-sky-500 mr-2"></i>Full gym access</li>
+          <li><i class="fa-solid fa-check text-sky-500 mr-2"></i>Group classes (4 per month)</li>
+          <li><i class="fa-solid fa-check text-sky-500 mr-2"></i>Starter workout plan</li>
+        </ul>
+        <a href="membership.php" class="mt-6 text-center px-6 py-3 rounded-full border border-slate-300 font-semibold text-[14px] hover:border-blue-400 hover:text-blue-600 transition-colors">Get Started</a>
+      </article>
+      <article class="lift relative flex flex-col bg-white rounded-3xl border-2 border-blue-600 shadow-md p-6">
+        <span class="absolute -top-3 left-6 bg-blue-600 text-white text-[11px] font-extrabold px-3 py-1 rounded-full">MOST POPULAR</span>
+        <h3 class="font-bold text-slate-900 text-lg">Pro</h3>
+        <p class="mt-3"><span class="text-3xl font-extrabold text-slate-900">UGX 300,000</span><span class="text-sm text-slate-400"> /month</span></p>
+        <ul class="mt-5 space-y-2.5 text-sm text-slate-600 flex-grow">
+          <li><i class="fa-solid fa-check text-sky-500 mr-2"></i>Everything in Starter</li>
+          <li><i class="fa-solid fa-check text-sky-500 mr-2"></i>Unlimited group classes</li>
+          <li><i class="fa-solid fa-check text-sky-500 mr-2"></i>4 personal training sessions</li>
+          <li><i class="fa-solid fa-check text-sky-500 mr-2"></i>Nutrition guide</li>
+        </ul>
+        <a href="membership.php" class="mt-6 text-center px-6 py-3 rounded-full bg-blue-600 text-white font-semibold text-[14px] shadow-sm hover:bg-blue-700 transition-colors">Join Pro</a>
+      </article>
+      <article class="lift flex flex-col bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
+        <h3 class="font-bold text-slate-900 text-lg">Elite</h3>
+        <p class="mt-3"><span class="text-3xl font-extrabold text-slate-900">UGX 500,000</span><span class="text-sm text-slate-400"> /month</span></p>
+        <ul class="mt-5 space-y-2.5 text-sm text-slate-600 flex-grow">
+          <li><i class="fa-solid fa-check text-sky-500 mr-2"></i>Everything in Pro</li>
+          <li><i class="fa-solid fa-check text-sky-500 mr-2"></i>12 personal training sessions</li>
+          <li><i class="fa-solid fa-check text-sky-500 mr-2"></i>Custom meal plan</li>
+          <li><i class="fa-solid fa-check text-sky-500 mr-2"></i>Weekly progress check-ins</li>
+        </ul>
+        <a href="membership.php" class="mt-6 text-center px-6 py-3 rounded-full border border-slate-300 font-semibold text-[14px] hover:border-blue-400 hover:text-blue-600 transition-colors">Go Elite</a>
+      </article>
+    </div>
+  </section>
 
-                    const ripple = document.createElement('span');
-                    ripple.classList.add('ripple');
-                    ripple.style.left = `${x}px`;
-                    ripple.style.top = `${y}px`;
+  <!-- CTA -->
+  <section class="banner-gradient rounded-[2rem] px-6 py-10 text-center mb-6">
+    <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Ready to start training?</h2>
+    <p class="text-sm text-slate-500 mt-2">Book a free tour and fitness assessment with one of our coaches.</p>
+    <a href="book.php" class="inline-flex mt-6 px-7 py-3 rounded-full bg-blue-600 text-white font-semibold text-[14px] shadow-sm hover:bg-blue-700 transition-colors">Book Free Tour</a>
+  </section>
 
-                    this.appendChild(ripple);
+</div>
+</main>
 
-                    setTimeout(() => {
-                        ripple.remove();
-                    }, 600);
-                });
-            });
-        });
-    </script>
-
+<script>
+  const drawer = document.getElementById('drawer'), backdrop = document.getElementById('backdrop');
+  function openD() { drawer.classList.remove('-translate-x-full'); backdrop.classList.remove('hidden'); document.body.style.overflow = 'hidden'; }
+  function closeD() { drawer.classList.add('-translate-x-full'); backdrop.classList.add('hidden'); document.body.style.overflow = ''; }
+  document.getElementById('menuBtn').addEventListener('click', openD);
+  document.getElementById('closeBtn').addEventListener('click', closeD);
+  backdrop.addEventListener('click', closeD);
+</script>
 </body>
 </html>
