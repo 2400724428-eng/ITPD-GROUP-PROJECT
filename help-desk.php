@@ -204,7 +204,7 @@
 <main class="support-page">
 <div class="support-container">
 
-    <div class="support-breadcrumb"><a href="index.php">Home</a> &nbsp;›&nbsp; <a href="help-desk.php">Help Centre</a> &nbsp;›&nbsp; How to Order</div>
+   
 
     <section class="support-hero">
         <span class="eyebrow"><i class="fa-solid fa-cart-shopping"></i> Shopping Guide</span>
