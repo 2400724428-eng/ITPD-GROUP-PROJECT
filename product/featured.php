@@ -130,10 +130,6 @@ try {
 <div class="max-w-[1320px] mx-auto">
   <main class="w-full min-w-0">
 
-    <!-- Header Section -->
-    <div class="mb-6 sm:mb-10 text-center sm:text-left">
-      <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Explore Categories</h1>
-      <p class="text-xs sm:text-sm text-slate-500 mt-1">Select a category box to view all items</p>
     </div>
 
     <!-- Category Boxes Grid -->
