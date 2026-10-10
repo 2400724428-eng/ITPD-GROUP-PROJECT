@@ -80,6 +80,67 @@
         </button>
       </div>
     </section>
+                              SDG 3 SECTION 
+<section class="max-w-[1060px] w-full mx-auto px-4 sm:px-6 py-12 sm:py-16" id="sdg3">
+  <div class="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
+    
+    <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 sm:px-10 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-lg shrink-0">
+          3
+        </div>
+        <div>
+          <p class="text-blue-100 text-sm font-medium tracking-wide uppercase">United Nations Sustainable Development Goal</p>
+          <h2 class="text-white text-xl sm:text-2xl font-bold leading-tight">Good Health and Well-being</h2>
+        </div>
+      </div>
+      <a href="https://sdgs.un.org/goals/goal3" target="_blank" rel="noopener"
+         class="inline-flex items-center gap-1.5 text-sm font-medium text-white/90 hover:text-white transition-colors">
+        Learn more about SDG 3
+      </a>
+    </div>
+
+    <div class="px-6 sm:px-10 py-8 sm:py-10">
+      <p class="text-slate-600 text-[15px] sm:text-base leading-relaxed max-w-3xl mb-8">
+        Pure Gain contributes to <strong>SDG 3 – Good Health and Well-being</strong> by making quality fitness training, 
+        nutrition guidance, and performance support more accessible. Regular physical activity and good nutrition help 
+        prevent non-communicable diseases, improve mental well-being, and support healthier communities — especially 
+        for young people and busy adults in Kampala and beyond.
+      </p>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div class="bg-slate-50 rounded-2xl p-5 border border-slate-100">
+          <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center mb-4">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          </div>
+          <h3 class="font-semibold text-slate-900 mb-1.5">Physical Health</h3>
+          <p class="text-sm text-slate-600 leading-relaxed">Structured training and strength programmes help reduce risk factors for heart disease, diabetes, and obesity.</p>
+        </div>
+
+        <div class="bg-slate-50 rounded-2xl p-5 border border-slate-100">
+          <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center mb-4">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <h3 class="font-semibold text-slate-900 mb-1.5">Mental Well-being</h3>
+          <p class="text-sm text-slate-600 leading-relaxed">Exercise and community classes support better mood, lower stress, improved sleep, and stronger social connections.</p>
+        </div>
+
+        <div class="bg-slate-50 rounded-2xl p-5 border border-slate-100">
+          <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center mb-4">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+          </div>
+          <h3 class="font-semibold text-slate-900 mb-1.5">Accessible Support</h3>
+          <p class="text-sm text-slate-600 leading-relaxed">Affordable membership plans, online coaching, and nutrition advice that works with local foods make healthy living more reachable.</p>
+        </div>
+      </div>
+
+      <p class="mt-8 text-center text-sm text-slate-500">
+        This project is part of our school group contribution to the UN Sustainable Development Goals.
+      </p>
+    </div>
+  </div>
+</section>
+                                  END SDG 3 SECTION
 
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
       <div>
