@@ -22,7 +22,6 @@ tailwind.config={"darkMode":"class","theme":{"extend":{"colors":{"inverse-surfac
 </head>
 <body class="bg-surface font-body-md text-on-surface antialiased">
 
-<!-- pt-28 (112px) removed: it was reserved for a fixed navbar this page doesn't have -->
 <main class="w-full pt-4 sm:pt-6 bg-surface pb-20">
   <div class="flex flex-col w-full max-w-7xl mx-auto px-margin py-space-lg">
 
@@ -72,47 +71,18 @@ tailwind.config={"darkMode":"class","theme":{"extend":{"colors":{"inverse-surfac
         <div>
           <span class="font-label-sm text-primary tracking-widest uppercase mb-1 block">Pure Gain Bag</span>
           <h1 class="font-headline-lg text-on-surface tracking-tight">Your Shopping Cart</h1>
-          <p class="font-body-md text-on-surface-variant">You have 3 items in your bag. Free shipping is unlocked!</p>
+          <p id="cart-subtitle" class="font-body-md text-on-surface-variant">Loading items...</p>
         </div>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg items-start">
         <div class="lg:col-span-8 flex flex-col gap-space-lg">
-          <div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
-            <div class="px-space-lg py-space-md bg-surface-container-low flex justify-between items-center text-on-surface-variant font-label-md">
-              <span>Product Details</span>
-              <span class="hidden sm:inline">Price &amp; Quantity</span>
-            </div>
-            <!-- Item 1 -->
-            <div class="p-space-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-space-md">
-              <div class="flex items-start sm:items-center gap-space-md flex-1">
-                <div class="w-20 h-20 rounded-lg overflow-hidden bg-surface-container-high flex-shrink-0">
-                  <img class="w-full h-full object-cover" alt="Aura Studio headphones" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB_Qt8Ct5p9QSltOcHyPqq3_7ebVbUCQDx8y0ifubi4Iix8OjyO7XfLC5qccybnlOxbvb3Tw65YfTBUxgrEaks83tyq9PA_ywjimPgCAwNOQ7Dk-s23vuuo4e1RxQqMRKhA-ubUDyoVJ4zSXFy1vGFwxfdbWoCWSVcJlW6skDe-tUYhcowdXmFz5zr2Y_PJPpmRCfitLbz9IRsyFZEvuYj1foosVXqpMz1oPyyEaSyPLyEnz05aflXY"/>
-                </div>
-                <div>
-                  <span class="font-label-sm text-outline uppercase tracking-wider">Audio Lab</span>
-                  <h3 class="font-headline-sm text-on-surface">Aura Studio Wireless Noise-Cancelling Headphones</h3>
-                  <p class="font-body-sm text-on-surface-variant">Matte Obsidian • Universal Fit</p>
-                </div>
-              </div>
-              <span class="font-headline-sm text-on-surface font-bold">$249.00</span>
-            </div>
-          </div>
+          <!-- Dynamic Items Injected Here -->
         </div>
 
         <!-- Summary & Next Button -->
         <div class="lg:col-span-4 flex flex-col gap-space-md sticky top-6">
-          <div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm">
-            <h2 class="font-headline-sm text-on-surface font-bold pb-space-sm">Order Summary</h2>
-            <div class="flex justify-between items-baseline pt-space-xs pb-space-md">
-              <span class="font-headline-sm text-on-surface font-bold">Total Amount</span>
-              <span class="font-headline-lg text-primary font-extrabold">$409.54</span>
-            </div>
-            <button onclick="goToStep(2)" class="w-full h-12 bg-primary-container hover:bg-primary text-on-primary rounded-lg font-label-lg flex items-center justify-center gap-space-sm shadow-md transition-all">
-              <span>Proceed to Checkout</span>
-              <span class="material-symbols-outlined text-[20px]">arrow_forward</span>
-            </button>
-          </div>
+          <!-- Dynamic Summary Injected Here -->
         </div>
       </div>
     </div>
@@ -134,16 +104,16 @@ tailwind.config={"darkMode":"class","theme":{"extend":{"colors":{"inverse-surfac
           </div>
           <div>
             <label class="font-label-sm text-on-surface-variant block mb-1">Street Address</label>
-            <input type="text" required class="w-full h-12 px-space-md bg-surface-container-low rounded-lg focus:outline-none" placeholder="123 Main Street, Apt 4B"/>
+            <input type="text" required class="w-full h-12 px-space-md bg-surface-container-low rounded-lg focus:outline-none" placeholder="Plot 12 Jinja Road"/>
           </div>
           <div class="grid grid-cols-2 gap-space-md">
             <div>
               <label class="font-label-sm text-on-surface-variant block mb-1">City</label>
-              <input type="text" required class="w-full h-12 px-space-md bg-surface-container-low rounded-lg focus:outline-none" placeholder="New York"/>
+              <input type="text" required class="w-full h-12 px-space-md bg-surface-container-low rounded-lg focus:outline-none" placeholder="Kampala"/>
             </div>
             <div>
-              <label class="font-label-sm text-on-surface-variant block mb-1">Postal Code</label>
-              <input type="text" required class="w-full h-12 px-space-md bg-surface-container-low rounded-lg focus:outline-none" placeholder="10001"/>
+              <label class="font-label-sm text-on-surface-variant block mb-1">Phone Number</label>
+              <input type="tel" required class="w-full h-12 px-space-md bg-surface-container-low rounded-lg focus:outline-none" placeholder="+256 700 000 000"/>
             </div>
           </div>
           <div class="flex justify-between pt-space-md">
@@ -163,23 +133,27 @@ tailwind.config={"darkMode":"class","theme":{"extend":{"colors":{"inverse-surfac
         <h2 class="font-headline-md text-on-surface font-bold mb-space-md">Payment Details</h2>
         <form class="space-y-space-md" onsubmit="event.preventDefault(); goToStep(4);">
           <div>
-            <label class="font-label-sm text-on-surface-variant block mb-1">Card Number</label>
-            <input type="text" required class="w-full h-12 px-space-md bg-surface-container-low rounded-lg focus:outline-none" placeholder="4532 •••• •••• 8920"/>
+            <label class="font-label-sm text-on-surface-variant block mb-1">Mobile Money Number / Card</label>
+            <input type="text" required class="w-full h-12 px-space-md bg-surface-container-low rounded-lg focus:outline-none" placeholder="0770 000 000 or Card Number"/>
           </div>
           <div class="grid grid-cols-2 gap-space-md">
             <div>
-              <label class="font-label-sm text-on-surface-variant block mb-1">Expiry Date</label>
-              <input type="text" required class="w-full h-12 px-space-md bg-surface-container-low rounded-lg focus:outline-none" placeholder="MM/YY"/>
+              <label class="font-label-sm text-on-surface-variant block mb-1">Payment Method</label>
+              <select class="w-full h-12 px-space-md bg-surface-container-low rounded-lg focus:outline-none">
+                <option>MTN Mobile Money</option>
+                <option>Airtel Money</option>
+                <option>Credit / Debit Card</option>
+              </select>
             </div>
             <div>
-              <label class="font-label-sm text-on-surface-variant block mb-1">CVV</label>
-              <input type="password" required maxlength="4" class="w-full h-12 px-space-md bg-surface-container-low rounded-lg focus:outline-none" placeholder="123"/>
+              <label class="font-label-sm text-on-surface-variant block mb-1">Reference Note</label>
+              <input type="text" class="w-full h-12 px-space-md bg-surface-container-low rounded-lg focus:outline-none" placeholder="Optional"/>
             </div>
           </div>
           <div class="flex justify-between pt-space-md">
             <button type="button" onclick="goToStep(2)" class="h-12 px-space-lg bg-surface-container-low text-on-surface rounded-lg font-label-lg">Back to Address</button>
-            <button type="submit" class="h-12 px-space-lg bg-primary text-on-primary rounded-lg font-label-lg flex items-center gap-2">
-              <span>Pay $409.54 &amp; Confirm</span>
+            <button id="pay-button" type="submit" class="h-12 px-space-lg bg-primary text-on-primary rounded-lg font-label-lg flex items-center gap-2">
+              <span>Pay UGX 0 &amp; Confirm</span>
               <span class="material-symbols-outlined text-[18px]">lock</span>
             </button>
           </div>
@@ -194,13 +168,13 @@ tailwind.config={"darkMode":"class","theme":{"extend":{"colors":{"inverse-surfac
           <span class="material-symbols-outlined text-[40px]">check</span>
         </div>
         <h2 class="font-headline-lg text-on-surface font-bold mb-space-xs">Order Confirmed!</h2>
-        <p class="font-body-md text-on-surface-variant mb-space-lg">Thank you for your purchase. We have received your order and are getting it ready for shipment.</p>
+        <p class="font-body-md text-on-surface-variant mb-space-lg">Thank you for your purchase. We have received your order and are getting it ready for delivery.</p>
         <div class="bg-surface-container-low p-space-md rounded-lg text-left mb-space-lg space-y-2">
-          <div class="flex justify-between"><span class="text-outline">Order ID:</span><span class="font-bold">#AURA-89421</span></div>
-          <div class="flex justify-between"><span class="text-outline">Estimated Delivery:</span><span class="font-bold">3-5 Business Days</span></div>
-          <div class="flex justify-between"><span class="text-outline">Total Paid:</span><span class="font-bold text-primary">$409.54</span></div>
+          <div class="flex justify-between"><span class="text-outline">Order ID:</span><span id="order-id" class="font-bold">#PG-89421</span></div>
+          <div class="flex justify-between"><span class="text-outline">Estimated Delivery:</span><span class="font-bold">1-2 Business Days</span></div>
+          <div class="flex justify-between"><span class="text-outline">Total Paid:</span><span id="confirm-total" class="font-bold text-primary">UGX 0</span></div>
         </div>
-        <button onclick="goToStep(1)" class="w-full h-12 bg-primary text-on-primary rounded-lg font-label-lg">Return to Shop</button>
+        <button onclick="clearAndReturn()" class="w-full h-12 bg-primary text-on-primary rounded-lg font-label-lg">Return to Shop</button>
       </div>
     </div>
 
@@ -209,25 +183,37 @@ tailwind.config={"darkMode":"class","theme":{"extend":{"colors":{"inverse-surfac
 
 <script>
   const STEP_ICONS = { 1: 'shopping_cart', 2: 'location_on', 3: 'credit_card', 4: 'check' };
+  const fmt = n => Number(n).toLocaleString("en-US");
 
+  // LocalStorage Store Engine
+  function getStoredCart() {
+    return JSON.parse(localStorage.getItem('puregain_cart')) || [];
+  }
+
+  function saveStoredCart(cart) {
+    localStorage.setItem('puregain_cart', JSON.stringify(cart));
+  }
+
+  // Stepper Controller
   function goToStep(stepNumber) {
     document.querySelectorAll('.checkout-step').forEach(el => el.classList.remove('active'));
-    document.getElementById('step-' + stepNumber).classList.add('active');
+    const target = document.getElementById('step-' + stepNumber);
+    if (target) target.classList.add('active');
 
     for (let i = 1; i <= 4; i++) {
       const indicator = document.getElementById('indicator-' + i);
       const label = document.getElementById('label-' + i);
-      const icon = (name) => '<span class="material-symbols-outlined text-[20px]">' + name + '</span>';
+      const icon = (name) => `<span class="material-symbols-outlined text-[20px]">${name}</span>`;
 
-      if (i < stepNumber) {            // completed
+      if (i < stepNumber) {
         indicator.className = "w-12 h-12 rounded-full bg-tertiary text-on-tertiary flex items-center justify-center shadow-md transition-all";
         indicator.innerHTML = icon('check');
         label.className = "font-label-md mt-2 text-tertiary";
-      } else if (i === stepNumber) {   // active
+      } else if (i === stepNumber) {
         indicator.className = "w-12 h-12 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-md transition-all";
         indicator.innerHTML = icon(STEP_ICONS[i]);
         label.className = "font-label-md font-bold mt-2 text-primary";
-      } else {                         // upcoming
+      } else {
         indicator.className = "w-12 h-12 rounded-full bg-surface-container-high text-outline flex items-center justify-center transition-all";
         indicator.innerHTML = icon(STEP_ICONS[i]);
         label.className = "font-label-md mt-2 text-outline";
@@ -235,6 +221,116 @@ tailwind.config={"darkMode":"class","theme":{"extend":{"colors":{"inverse-surfac
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
+
+  // Quantity Management
+  function updateQuantity(id, delta) {
+    let cart = getStoredCart();
+    const item = cart.find(i => i.id === id);
+    if (!item) return;
+
+    item.quantity += delta;
+    if (item.quantity <= 0) {
+      cart = cart.filter(i => i.id !== id);
+    }
+    saveStoredCart(cart);
+    renderCart();
+  }
+
+  function removeItem(id) {
+    let cart = getStoredCart();
+    cart = cart.filter(i => i.id !== id);
+    saveStoredCart(cart);
+    renderCart();
+  }
+
+  // Render Engine
+  function renderCart() {
+    const cart = getStoredCart();
+    const cartContainer = document.querySelector('#step-1 .lg\\:col-span-8');
+    const summaryContainer = document.querySelector('#step-1 .lg\\:col-span-4');
+    const subtotal = cart.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+    const totalCount = cart.reduce((sum, i) => sum + i.quantity, 0);
+
+    const subtitle = document.getElementById('cart-subtitle');
+    if (subtitle) {
+      subtitle.textContent = `You have ${totalCount} item${totalCount !== 1 ? 's' : ''} in your bag.`;
+    }
+
+    if (cart.length === 0) {
+      cartContainer.innerHTML = `
+        <div class="bg-surface-container-lowest rounded-xl p-space-xl text-center shadow-sm">
+          <span class="material-symbols-outlined text-[60px] text-outline mb-2">shopping_bag</span>
+          <h3 class="font-headline-sm text-on-surface mb-1">Your cart is empty</h3>
+          <p class="font-body-sm text-on-surface-variant">Add products from the shop to get started.</p>
+          <a href="shop.php" class="inline-block mt-4 px-space-lg py-2 bg-primary text-on-primary rounded-lg font-label-md">Browse Shop</a>
+        </div>`;
+    } else {
+      let itemsHTML = cart.map(item => `
+        <div class="p-space-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-space-md border-b border-surface-container-low last:border-0">
+          <div class="flex items-start sm:items-center gap-space-md flex-1">
+            <div class="w-20 h-20 rounded-lg overflow-hidden bg-surface-container-high flex-shrink-0 flex items-center justify-center p-1">
+              <img class="max-h-full max-w-full object-contain" alt="${item.name}" src="${item.image}"/>
+            </div>
+            <div>
+              <h3 class="font-headline-sm text-on-surface">${item.name}</h3>
+              <p class="font-body-sm text-on-surface-variant">${item.unit || ''}</p>
+            </div>
+          </div>
+          <div class="flex items-center justify-between w-full sm:w-auto gap-space-lg">
+            <div class="flex items-center bg-surface-container-low rounded-lg p-1 border border-outline-variant/30">
+              <button onclick="updateQuantity(${item.id}, -1)" class="w-8 h-8 flex items-center justify-center text-on-surface rounded-md hover:bg-surface-container-high font-bold transition-colors">-</button>
+              <span class="w-8 text-center font-label-md font-bold text-on-surface">${item.quantity}</span>
+              <button onclick="updateQuantity(${item.id}, 1)" class="w-8 h-8 flex items-center justify-center text-on-surface rounded-md hover:bg-surface-container-high font-bold transition-colors">+</button>
+            </div>
+            <div class="text-right min-w-[110px]">
+              <span class="font-headline-sm text-on-surface font-bold block">UGX ${fmt(item.price * item.quantity)}</span>
+              <button onclick="removeItem(${item.id})" class="text-error font-label-sm hover:underline flex items-center gap-1 justify-end ml-auto mt-1">
+                <span class="material-symbols-outlined text-[14px]">delete</span> Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+
+      cartContainer.innerHTML = `
+        <div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
+          <div class="px-space-lg py-space-md bg-surface-container-low flex justify-between items-center text-on-surface-variant font-label-md">
+            <span>Product Details</span>
+            <span class="hidden sm:inline">Quantity &amp; Price</span>
+          </div>
+          ${itemsHTML}
+        </div>`;
+    }
+
+    if (summaryContainer) {
+      summaryContainer.innerHTML = `
+        <div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm">
+          <h2 class="font-headline-sm text-on-surface font-bold pb-space-sm border-b border-surface-container-low mb-space-sm">Order Summary</h2>
+          <div class="flex justify-between items-baseline pt-space-sm pb-space-md">
+            <span class="font-headline-sm text-on-surface font-bold">Total Amount</span>
+            <span class="font-headline-lg text-primary font-extrabold">UGX ${fmt(subtotal)}</span>
+          </div>
+          <button onclick="goToStep(2)" ${cart.length === 0 ? 'disabled' : ''} class="w-full h-12 bg-primary-container hover:bg-primary text-on-primary rounded-lg font-label-lg flex items-center justify-center gap-space-sm shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+            <span>Proceed to Checkout</span>
+            <span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+          </button>
+        </div>`;
+    }
+
+    // Sync button amounts across steps
+    const payBtnSpan = document.querySelector('#pay-button span');
+    if (payBtnSpan) payBtnSpan.textContent = `Pay UGX ${fmt(subtotal)} & Confirm`;
+
+    const confirmTotal = document.getElementById('confirm-total');
+    if (confirmTotal) confirmTotal.textContent = `UGX ${fmt(subtotal)}`;
+  }
+
+  function clearAndReturn() {
+    localStorage.removeItem('puregain_cart');
+    window.location.href = 'shop.php';
+  }
+
+  document.addEventListener('DOMContentLoaded', renderCart);
 </script>
 </body>
 </html>

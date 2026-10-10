@@ -1,11 +1,16 @@
+<?php
+// Enable output buffering at the very first line to prevent "headers already sent" errors
+ob_start();
+require_once __DIR__ . '/../includes/db_connect.php';
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>QuickCart - Seller Panel</title>
-<!-- Tailwind CSS CDN with forms and container queries plugins -->
-<link href="../src/output.css" rel="stylesheet">
+<title>PURE GAIN - Admin Panel</title>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
 
 <script>
     tailwind.config = {
@@ -57,14 +62,14 @@
   <aside class="w-64 border-r border-gray-200 bg-white flex flex-col shrink-0 select-none" data-purpose="sidebar-navigation">
     <div class="p-6 border-b border-gray-100 flex items-center gap-2">
       <div style="padding: 24px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; gap: 12px;">
-        <!-- Small logo using inline CSS width -->
+        <!-- Small logo -->
         <img src="../assets/images/logos.png" alt="Logo" style="width: 40px; height: 40px; object-fit: contain;">
         <span style="font-weight: 700; font-size: 1.125rem; color: #0f172a;">PURE GAIN</span>
       </div>
     </div>
     <nav class="flex-1 pt-4 space-y-1 overflow-y-auto">
       <!-- Add Product Nav Item -->
-      <button onclick="switchScreen('add-product', this)" class="nav-item w-full relative flex items-center gap-3.5 px-6 py-3.5 text-sm font-medium bg-blue-50 text-blue-900 border-r-4 border-blue-600 transition-colors text-left">
+      <button id="nav-btn-add-product" onclick="switchScreen('add-product', this)" class="nav-item w-full relative flex items-center gap-3.5 px-6 py-3.5 text-sm font-medium bg-blue-50 text-blue-900 border-r-4 border-blue-600 transition-colors text-left">
         <svg class="w-5 h-5 text-blue-600 stroke-[1.8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <rect height="18" rx="4" stroke-width="2" width="18" x="3" y="3"></rect>
           <path d="M12 8v8m-4-4h8" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
@@ -119,7 +124,7 @@
           </svg>
         </button>
         
-        <!-- Dropdown Sub-menu for the 5 Gym Screens -->
+        <!-- Dropdown Sub-menu -->
         <div id="gym-submenu" class="hidden pl-12 pr-6 py-1 space-y-1 bg-slate-50/50">
           <button onclick="switchScreen('gym-dashboard', this)" class="nav-item w-full block py-2 text-xs font-medium text-slate-600 hover:text-blue-600 transition-colors text-left">
             Dashboard Overview
@@ -159,7 +164,7 @@
         <input type="text" placeholder="Search members, products, orders..." class="w-full pl-9 pr-4 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-600 focus:bg-white text-slate-800" />
       </div>
 
-      <!-- Right Header Actions (History, Notifications, Profile) -->
+      <!-- Right Header Actions -->
       <div class="flex items-center gap-4">
         
         <!-- Activity History Dropdown Button -->
@@ -247,44 +252,44 @@
     <!-- BEGIN: MainContent -->
     <main class="flex-1 overflow-y-auto px-10 py-8 bg-white" data-purpose="main-content-area">
       
-      <!-- SCREEN 1: add products --> 
-      <?php include(__DIR__ . '/views/addproduct.php'); ?>
+      <!-- SCREEN 1: ADD PRODUCTS --> 
+      <?php @include(__DIR__ . '/views/addproduct.php'); ?>
 
       <!-- SCREEN 2: PRODUCT LIST -->
-      <?php include(__DIR__ . '/views/product-list.php'); ?>
+      <?php @include(__DIR__ . '/views/product-list.php'); ?>
 
       <!-- SCREEN 3: ORDERS -->
-      <?php include(__DIR__ . '/views/orders.php'); ?>
+      <?php @include(__DIR__ . '/views/orders.php'); ?>
 
       <!-- SCREEN 4: CONTACT MESSAGES -->
-      <?php include(__DIR__ . '/views/contactmessages.php'); ?>
+      <?php @include(__DIR__ . '/views/contactmessages.php'); ?>
 
       <!-- GYM SCREEN 1: Dashboard Overview -->
-      <?php include(__DIR__ . '/views/overview.php'); ?>
+      <?php @include(__DIR__ . '/views/overview.php'); ?>
 
       <!-- GYM SCREEN 2: Members Management -->
-      <?php include(__DIR__ . '/views/gym-members.php'); ?>
+      <?php @include(__DIR__ . '/views/gym-members.php'); ?>
 
       <!-- GYM SCREEN 3: Subscriptions -->
-      <?php include(__DIR__ . '/views/gym-subscriptions.php'); ?>
+      <?php @include(__DIR__ . '/views/gym-subscriptions.php'); ?>
 
       <!-- GYM SCREEN 4: Class Bookings -->
-      <?php include(__DIR__ . '/views/gym-bookings.php'); ?>
+      <?php @include(__DIR__ . '/views/gym-bookings.php'); ?>
 
       <!-- GYM SCREEN 5: Trainer Management -->
-      <?php include(__DIR__ . '/views/gym-trainers.php'); ?>
+      <?php @include(__DIR__ . '/views/gym-trainers.php'); ?>
 
       <!-- NEW SCREEN: Your Profile -->
-      <?php include(__DIR__ . '/views/screen-profile.php'); ?>
+      <?php @include(__DIR__ . '/views/screen-profile.php'); ?>
 
       <!-- NEW SCREEN: Activity History -->
-      <?php include(__DIR__ . '/views/screen-history.php'); ?>
+      <?php @include(__DIR__ . '/views/screen-history.php'); ?>
 
       <!-- NEW SCREEN: Settings -->
-      <?php include(__DIR__ . '/views/screen-settings.php'); ?>
+      <?php @include(__DIR__ . '/views/screen-settings.php'); ?>
 
       <!-- NEW SCREEN: Add User -->
-      <?php include(__DIR__ . '/views/add-user.php'); ?>
+      <?php @include(__DIR__ . '/views/add-user.php'); ?>
 
     </main>
     <!-- END: MainContent -->
@@ -304,28 +309,27 @@
     chevron.classList.toggle('rotate-180');
   }
 
-  // Generic toggler for dropdowns that closes others when a new one opens
   function toggleDropdown(dropdownId) {
     const target = document.getElementById(dropdownId);
     const isHidden = target.classList.contains('hidden');
     
     // Hide all dropdowns first
     ['profile-dropdown', 'history-dropdown', 'notifications-dropdown'].forEach(id => {
-      document.getElementById(id).classList.add('hidden');
+      const el = document.getElementById(id);
+      if (el) el.classList.add('hidden');
     });
 
-    // Toggle target
-    if (isHidden) {
+    if (isHidden && target) {
       target.classList.remove('hidden');
     }
   }
 
-  // Close any active dropdown popups when clicking outside of them
+  // Close active dropdown popups when clicking outside
   window.addEventListener('click', function(e) {
-    if (!e.closest('header .relative')) {
+    if (!e.target.closest('header .relative')) {
       ['profile-dropdown', 'history-dropdown', 'notifications-dropdown'].forEach(id => {
         const el = document.getElementById(id);
-        if (el && !el.contains(e.target) && !e.target.closest('button')) {
+        if (el && !el.contains(e.target)) {
           el.classList.add('hidden');
         }
       });
@@ -344,15 +348,15 @@
       target.classList.remove('hidden');
     }
 
-    // Update sidebar active states if triggered from sidebar
+    // Reset sidebar active states
     document.querySelectorAll('.nav-item').forEach(item => {
       item.classList.remove('bg-blue-50', 'text-blue-900', 'border-r-4', 'border-blue-600', 'text-blue-600', 'font-semibold');
       item.classList.add('text-slate-600');
       const svg = item.querySelector('svg');
-      if(svg) svg.classList.replace('text-blue-600', 'text-slate-500');
+      if (svg) svg.classList.replace('text-blue-600', 'text-slate-500');
     });
 
-    // Style clicked item
+    // Style active item
     if (element && element.closest('#gym-submenu')) {
       element.classList.remove('text-slate-600');
       element.classList.add('text-blue-600', 'font-semibold');
@@ -360,10 +364,19 @@
       element.classList.remove('text-slate-600', 'hover:text-slate-900', 'hover:bg-slate-50');
       element.classList.add('bg-blue-50', 'text-blue-900', 'border-r-4', 'border-blue-600');
       const activeSvg = element.querySelector('svg');
-      if(activeSvg) activeSvg.classList.replace('text-slate-500', 'text-blue-600');
+      if (activeSvg) activeSvg.classList.replace('text-slate-500', 'text-blue-600');
     }
   }
+
+  // Set initial screen state on page load
+  document.addEventListener('DOMContentLoaded', () => {
+    const defaultNavBtn = document.getElementById('nav-btn-add-product');
+    switchScreen('add-product', defaultNavBtn);
+  });
 </script>
 
 </body>
 </html>
+<?php
+ob_end_flush();
+?>

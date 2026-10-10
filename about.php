@@ -1,189 +1,133 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>About Us | Pure Gain</title>
-    <!-- Font Awesome CDN Link -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Custom Pure White & Blue UI Upgrade Styling -->
-    <style>
-      body {
-        background-color: #ffffff;
-        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        color: #1e293b;
-        margin: 0;
-      }
-      .support-page {
-        padding: 40px 20px;
-        background-color: #ffffff;
-      }
-      .support-container {
-        max-width: 1100px;
-        margin: 0 auto;
-      }
-      .support-breadcrumb {
-        font-size: 13px;
-        color: #64748b;
-        margin-bottom: 24px;
-      }
-      .support-breadcrumb a {
-        color: #2563eb;
-        text-decoration: none;
-      }
-      .support-breadcrumb a:hover {
-        text-decoration: underline;
-      }
-      .support-hero {
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 16px;
-        padding: 40px;
-        margin-bottom: 32px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
-      }
-      .support-hero .eyebrow {
-        color: #2563eb;
-        background: #eff6ff;
-        padding: 6px 14px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 600;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .support-hero h1 {
-        font-size: 28px;
-        font-weight: 800;
-        color: #0f172a;
-        margin-top: 14px;
-        margin-bottom: 8px;
-      }
-      .support-hero p {
-        font-size: 14px;
-        color: #475569;
-        line-height: 1.5;
-        max-width: 700px;
-        margin: 0;
-      }
-      .support-section {
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 16px;
-        padding: 32px;
-        margin-bottom: 32px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
-      }
-      .support-section h2 {
-        font-size: 18px;
-        font-weight: 700;
-        color: #0f172a;
-        margin-bottom: 12px;
-      }
-      .support-section p {
-        font-size: 13px;
-        color: #475569;
-        line-height: 1.6;
-        margin-bottom: 16px;
-      }
-      .support-section ul {
-        margin-bottom: 16px;
-        padding-left: 20px;
-      }
-      .support-section li {
-        font-size: 13px;
-        color: #475569;
-        line-height: 1.6;
-        margin-bottom: 6px;
-      }
-      .status-strip {
-        background: #eff6ff;
-        color: #1e40af;
-        border: 1px solid #bfdbfe;
-        padding: 12px 16px;
-        border-radius: 8px;
-        font-size: 12px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-top: 16px;
-      }
-      .support-actions {
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-        margin-top: 20px;
-      }
-      .support-button {
-        background-color: #2563eb;
-        color: #ffffff;
-        border: none;
-        border-radius: 8px;
-        padding: 12px 20px;
-        font-size: 13px;
-        font-weight: 600;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        text-decoration: none;
-        transition: background-color 0.2s;
-      }
-      .support-button:hover {
-        background-color: #1d4ed8;
-      }
-    </style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>About Us - ApexFit</title>
+<link href="./src/output.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    brand: {
+                        50: '#f0f9ff',
+                        100: '#e0f2fe',
+                        500: '#0ea5e9',
+                        600: '#0284c7',
+                        700: '#0369a1',
+                    }
+                },
+                fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] }
+            }
+        }
+    }
+</script>
 </head>
-<body>
+<body class="bg-white text-slate-800 font-sans antialiased min-h-screen">
 
-<main class="support-page">
-<div class="support-container">
 
-    <div class="support-breadcrumb"><a href="index.php">Home</a> &nbsp;›&nbsp; About Us</div>
+<main class="py-8 sm:py-16 px-4 sm:px-8 lg:px-12">
+  <div class="max-w-[1100px] mx-auto space-y-16 sm:space-y-24">
 
-    <section class="support-hero">
-        <span class="eyebrow"><i class="fa-solid fa-dumbbell"></i> About Pure Gain</span>
-        <h1>Fueling Kampala's fitness journey.</h1>
-        <p>Your trusted online marketplace for authentic gym supplements and fitness products, built to support lifters and athletes across Kampala.</p>
-    </section>
-
-    <section class="support-section">
-        <h2><i class="fa-solid fa-bullseye" style="color:#2563eb;"></i> Our Mission</h2>
-        <p>
-            At Pure Gain, our mission is simple: to make genuine, high-quality gym supplements easily accessible and safe for everyone in Kampala. We know how frustrating and risky it can be to find reliable nutritional products. That is why we built a vetted marketplace connecting fitness enthusiasts directly with verified vendors.
+    <!-- Section 1: Text Left, Image Right -->
+    <section class="flex flex-col md:flex-row items-center gap-8 sm:gap-12">
+      <div class="w-full md:w-1/2 space-y-4">
+        <h2 class="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
+          The Best Fitness Support For Over 7 Years
+        </h2>
+        <p class="text-xs sm:text-sm font-bold text-sky-600 uppercase tracking-widest">
+          PREMIUM, LAB-TESTED SUPPLEMENTS
         </p>
-    </section>
-
-    <section class="support-section">
-        <h2><i class="fa-solid fa-shield-halved" style="color:#2563eb;"></i> The Pure Gain Standard</h2>
-        <p>
-            Trust is everything when it comes to what you put into your body. We take quality control seriously through rigorous steps:
+        <div class="w-12 h-1 bg-sky-500 rounded-full"></div>
+        <p class="text-sm sm:text-base text-slate-600 leading-relaxed">
+          We are dedicated to helping athletes and gym enthusiasts reach their peak physical performance. Every product in our lineup is carefully formulated with scientifically proven ingredients to deliver clean energy, maximum strength, and optimal muscle recovery.
         </p>
-        <ul>
-            <li><strong>Vendor Verification:</strong> Every vendor goes through a verification check detailing their business and product sourcing before they can list items.</li>
-            <li><strong>Status Tracking:</strong> Vendor profiles are closely monitored with transparent status classifications so you know who you are buying from.</li>
-            <li><strong>Authenticity Focus:</strong> While our vetting process is strict, we empower our community to inspect packaging, seals, batch numbers, and expiry dates upon delivery.</li>
-        </ul>
-        <div class="status-strip">
-            <i class="fa-solid fa-circle-check"></i>
-            <span>Spotted something suspicious or tampered with? Report it straight away and our team will jump on it.</span>
+        <div class="pt-2">
+          <a href="shop.php" class="inline-flex items-center justify-center px-6 py-3 bg-sky-600 hover:bg-sky-700 text-white font-semibold text-sm rounded-full shadow-lg shadow-sky-500/20 transition-all active:scale-95">
+            EXPLORE CATALOG <i class="fa-solid fa-arrow-right ml-2 text-xs"></i>
+          </a>
         </div>
-    </section>
-
-    <section class="support-section">
-        <h2><i class="fa-solid fa-bolt" style="color:#2563eb;"></i> Seamless WhatsApp Shopping</h2>
-        <p>
-            To keep transactions fast, transparent, and personal, Pure Gain uses a direct WhatsApp checkout handoff. Instead of getting bogged down by slow email threads, your order details, references, and quantities go directly to our team so we can confirm stock, arrange your Kampala delivery, and answer any questions in real time.
-        </p>
-        <div class="support-actions">
-            <a class="support-button" href="contact.php"><i class="fa-solid fa-headset"></i> Get in Touch</a>
-            <a class="support-button" href="help-desk.php" style="background-color: #475569;"><i class="fa-solid fa-circle-question"></i> Visit Help Centre</a>
+      </div>
+      <div class="w-full md:w-1/2">
+        <div class="relative rounded-2xl overflow-hidden shadow-xl border border-slate-100 aspect-[4/3]">
+          <img src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=800&q=80" alt="Gym Training Equipment" class="w-full h-full object-cover"/>
         </div>
+      </div>
     </section>
 
-</div>
+    <!-- Section 2: Image Left, Text Right -->
+    <section class="flex flex-col-reverse md:flex-row items-center gap-8 sm:gap-12">
+      <div class="w-full md:w-1/2">
+        <div class="relative rounded-2xl overflow-hidden shadow-xl border border-slate-100 aspect-[4/3]">
+          <img src="https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?auto=format&fit=crop&w=800&q=80" alt="Weight Training" class="w-full h-full object-cover"/>
+        </div>
+      </div>
+      <div class="w-full md:w-1/2 space-y-4">
+        <h2 class="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
+          Incredible, Proven Formulas
+        </h2>
+        <p class="text-xs sm:text-sm font-bold text-sky-600 uppercase tracking-widest">
+          DESIGNED FOR MAXIMUM MUSCLE GAINS
+        </p>
+        <div class="w-12 h-1 bg-sky-500 rounded-full"></div>
+        <p class="text-sm sm:text-base text-slate-600 leading-relaxed">
+          Whether you are building lean muscle, increasing endurance, or burning body fat, our targeted supplement blends give your body the exact nutrients required for intense workout sessions.
+        </p>
+        <div class="pt-2">
+          <a href="shop.php" class="inline-flex items-center justify-center px-6 py-3 bg-sky-600 hover:bg-sky-700 text-white font-semibold text-sm rounded-full shadow-lg shadow-sky-500/20 transition-all active:scale-95">
+            VIEW PRODUCTS <i class="fa-solid fa-arrow-right ml-2 text-xs"></i>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 3: Text Left, Image Right -->
+    <section class="flex flex-col md:flex-row items-center gap-8 sm:gap-12">
+      <div class="w-full md:w-1/2 space-y-4">
+        <h2 class="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
+          We Cater To All Fitness Goals
+        </h2>
+        <p class="text-xs sm:text-sm font-bold text-sky-600 uppercase tracking-widest">
+          BEGINNERS OR PRO ATHLETES, WE GOT YOU COVERED
+        </p>
+        <div class="w-12 h-1 bg-sky-500 rounded-full"></div>
+        <p class="text-sm sm:text-base text-slate-600 leading-relaxed">
+          From pure creatine monohydrate and whey protein isolate to pre-workout energy matrices, our products fit seamlessly into any training routine.
+        </p>
+        <div class="pt-2">
+          <a href="shop.php" class="inline-flex items-center justify-center px-6 py-3 bg-sky-600 hover:bg-sky-700 text-white font-semibold text-sm rounded-full shadow-lg shadow-sky-500/20 transition-all active:scale-95">
+            GET STARTED TODAY <i class="fa-solid fa-arrow-right ml-2 text-xs"></i>
+          </a>
+        </div>
+      </div>
+      <div class="w-full md:w-1/2">
+        <div class="relative rounded-2xl overflow-hidden shadow-xl border border-slate-100 aspect-[4/3]">
+          <img src="https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=800&q=80" alt="Athletic Training" class="w-full h-full object-cover"/>
+        </div>
+      </div>
+    </section>
+
+  </div>
 </main>
+
+<!-- Footer -->
+<footer class="border-t border-slate-100 bg-slate-50 mt-16 py-8 px-4 text-center text-xs text-slate-500">
+  <div class="max-w-[1100px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+    
+    <div class="flex gap-6">
+      <a href="shop.php" class="hover:underline">Shop</a>
+      <a href="faq.php" class="hover:underline">FAQ</a>
+      <a href="contact.php" class="hover:underline">Contact</a>
+      <a href="privacy-policy.php" class="hover:underline">Privacy Policy</a>
+    </div>
+  </div>
+</footer>
 
 </body>
 </html>
