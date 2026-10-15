@@ -8,6 +8,7 @@ if ($isLive) {
     $dbName   = 'if0_42288211_jumika';
     $username = 'if0_42288211';
     $password = 'psI7GvgUoDK7N';
+    $port     = '';
 } else {
     $host     = 'localhost';
     $port     = '3307'; // Added your local XAMPP MySQL port here
@@ -17,7 +18,12 @@ if ($isLive) {
 }
 
 $charset = 'utf8mb4';
-$dsn     = $dsn = "mysql:host=$host;port=$port;dbname=$dbName;charset=$charset";
+
+// Dynamically construct the DSN string based on environment
+if ($isLive) {
+    $dsn = "mysql:host=$host;dbname=$dbName;charset=$charset";
+} else {
+    $dsn = "mysql:host=$host;port=$port;dbname=$dbName;charset=$charset";
 }
 
 $options = [
