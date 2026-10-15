@@ -1,30 +1,24 @@
 <?php
-// Auto-detect environment based on server hostname
+// Auto-detect environment: If running on local development (localhost or 127.0.0.1)
 $hostHeader = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '';
-$isLive     = strpos($hostHeader, 'infinityfree.com') !== false;
+$isLocal    = (strpos($hostHeader, 'localhost') !== false || strpos($hostHeader, '127.0.0.1') !== false);
 
-if ($isLive) {
-    $host     = 'sql100.infinityfree.com';
-    $dbName   = 'if0_42288211_jumika';
+if (!$isLocal) {
+    // LIVE ENVIRONMENT (InfinityFree - Filled exactly from your panel)
+    $host     = 'sql303.infinityfree.com'; // FIXED: Switched from sql100 to sql303
+    $dbName   = 'if0_42288211_jumika';     // FIXED: Target database verified from list
     $username = 'if0_42288211';
-    $password = 'psI7GvgUoDK7N';
-    $port     = '';
+    $password = '3mTB6HRSCw7vH38';         // FIXED: Your new live database password
 } else {
+    // LOCAL ENVIRONMENT
     $host     = 'localhost';
-    $port     = '3307'; // Added your local XAMPP MySQL port here
     $dbName   = 'gym_supplements_store';
     $username = 'root';
     $password = '';
 }
 
 $charset = 'utf8mb4';
-
-// Dynamically construct the DSN string based on environment
-if ($isLive) {
-    $dsn = "mysql:host=$host;dbname=$dbName;charset=$charset";
-} else {
-    $dsn = "mysql:host=$host;port=$port;dbname=$dbName;charset=$charset";
-}
+$dsn     = "mysql:host=$host;dbname=$dbName;charset=$charset";
 
 $options = [
     PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
@@ -41,7 +35,8 @@ try {
     http_response_code(500);
     echo json_encode([
         'success' => false,
-        'message' => 'Database connection failed.'
+        'message' => 'Database connection failed.',
+        'debug'   => $e->getMessage()
     ]);
     exit;
 }
