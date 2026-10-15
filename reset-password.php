@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once 'includes/db.php'; // adjust path if needed
+require_once 'includes/db_connect.php'; // adjust path if needed
 
 // Must come from forgot-password flow
 if (empty($_SESSION['reset_email'])) {
