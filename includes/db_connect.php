@@ -10,13 +10,15 @@ if ($isLive) {
     $password = 'psI7GvgUoDK7N';
 } else {
     $host     = 'localhost';
+    $port     = '3307'; // Added your local XAMPP MySQL port here
     $dbName   = 'gym_supplements_store';
     $username = 'root';
     $password = '';
 }
 
 $charset = 'utf8mb4';
-$dsn     = "mysql:host=$host;dbname=$dbName;charset=$charset";
+$dsn     = $dsn = "mysql:host=$host;port=$port;dbname=$dbName;charset=$charset";
+}
 
 $options = [
     PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
