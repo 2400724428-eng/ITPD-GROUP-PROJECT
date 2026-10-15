@@ -76,10 +76,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_type']) && $_P
     }
 }
 
-// Fetch user orders
+// Fetch user orders linked via user_id
 $ordersStmt = $pdo->prepare("SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC");
 $ordersStmt->execute([$userId]);
-$orders = $ordersStmt->fetchAll();
+$orders = $ordersStmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch wishlist items joined with product details
 $wishlistQuery = $pdo->prepare("
@@ -176,7 +176,7 @@ tailwind.config = { theme: { extend: { fontFamily: { sans: ['"Plus Jakarta Sans"
       <i class="fa-solid fa-chart-pie mr-2"></i>Overview
     </button>
     <button type="button" onclick="switchDashboardTab('orders')" id="tabBtnOrders" class="dashboard-tab-btn py-3 px-5 text-sm font-bold text-slate-500 border-b-2 border-transparent hover:text-slate-900 transition-colors whitespace-nowrap">
-      <i class="fa-solid fa-box-archive mr-2"></i>My Orders
+      <i class="fa-solid fa-box-archive mr-2"></i>My Orders (<?= count($orders) ?>)
     </button>
     <button type="button" onclick="switchDashboardTab('wishlist')" id="tabBtnWishlist" class="dashboard-tab-btn py-3 px-5 text-sm font-bold text-slate-500 border-b-2 border-transparent hover:text-slate-900 transition-colors whitespace-nowrap">
       <i class="fa-solid fa-heart mr-2 text-red-500"></i>My Wishlist (<?= $wishlistCount ?>)
@@ -230,7 +230,7 @@ tailwind.config = { theme: { extend: { fontFamily: { sans: ['"Plus Jakarta Sans"
     <div class="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
       <div class="p-6 border-b border-slate-100">
         <h3 class="font-extrabold text-slate-900 text-base">Order History</h3>
-        <p class="text-xs text-slate-500 mt-1">Review status and details of your supplement orders.</p>
+        <p class="text-xs text-slate-500 mt-1">Review status and details of your supplement orders[cite: 7].</p>
       </div>
 
       <?php if (empty($orders)): ?>
@@ -246,6 +246,7 @@ tailwind.config = { theme: { extend: { fontFamily: { sans: ['"Plus Jakarta Sans"
               <tr class="bg-slate-50 text-[11px] font-bold uppercase text-slate-400 border-b border-slate-100">
                 <th class="py-3.5 px-6">Order ID</th>
                 <th class="py-3.5 px-6">Date</th>
+                <th class="py-3.5 px-6">Shipping Address</th>
                 <th class="py-3.5 px-6">Payment Method</th>
                 <th class="py-3.5 px-6">Status</th>
                 <th class="py-3.5 px-6 text-right">Total Amount</th>
@@ -254,11 +255,12 @@ tailwind.config = { theme: { extend: { fontFamily: { sans: ['"Plus Jakarta Sans"
             <tbody class="divide-y divide-slate-100 text-xs font-medium text-slate-700">
               <?php foreach ($orders as $order): ?>
                 <tr class="hover:bg-slate-50/50 transition-colors">
-                  <td class="py-4 px-6 font-bold text-slate-900"><?= htmlspecialchars($order['order_number']) ?></td>
+                  <td class="py-4 px-6 font-bold text-slate-900">#<?= htmlspecialchars($order['order_number']) ?></td>
                   <td class="py-4 px-6 text-slate-500"><?= date('M d, Y', strtotime($order['created_at'])) ?></td>
+                  <td class="py-4 px-6 text-slate-600 max-w-xs truncate"><?= htmlspecialchars($order['shipping_address']) ?></td>
                   <td class="py-4 px-6"><?= htmlspecialchars($order['payment_method']) ?></td>
                   <td class="py-4 px-6">
-                    <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase <?= $order['payment_status'] === 'paid' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200' ?>">
+                    <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase <?= ($order['payment_status'] === 'Completed') ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200' ?>">
                       <?= htmlspecialchars($order['payment_status']) ?>
                     </span>
                   </td>
@@ -296,7 +298,6 @@ tailwind.config = { theme: { extend: { fontFamily: { sans: ['"Plus Jakarta Sans"
             $offer = (float)$item['offer'];
             $effectivePrice = ($offer > 0 && $offer < $price) ? $offer : $price;
             
-            // Fixed image path prefix check for subfolder view
             $rawImg = $item['img'];
             if (empty($rawImg)) {
                 $img = 'https://images.unsplash.com/photo-1546483875-ad9014c88eba?auto=format&fit=crop&w=500&q=80';
