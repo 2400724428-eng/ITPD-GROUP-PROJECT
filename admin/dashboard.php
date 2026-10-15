@@ -2,6 +2,21 @@
 // Enable output buffering at the very first line to prevent "headers already sent" errors
 ob_start();
 require_once __DIR__ . '/../includes/db_connect.php';
+
+// Fetch initial pending/new order count and recent orders for notifications
+$pendingOrdersCount = 0;
+$recentOrders = [];
+if (isset($pdo)) {
+    try {
+        $countStmt =$pdo->query("SELECT COUNT(*) FROM `orders` WHERE `payment_status` = 'Pending'");
+        $pendingOrdersCount =$countStmt->fetchColumn();
+
+        $listStmt =$pdo->query("SELECT `order_number`, `shipping_address`, `created_at` FROM `orders` ORDER BY `id` DESC LIMIT 5");
+        $recentOrders =$listStmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {$pendingOrdersCount = 0;
+        $recentOrders = [];
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -51,9 +66,20 @@ require_once __DIR__ . '/../includes/db_connect.php';
         transform: translateY(0);
       }
     }
+    /* Toast Pop-up slide-in animation */
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    .toast-animate {
+      animation: slideIn 0.3s ease-out forwards;
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col font-sans antialiased text-slate-800 bg-white">
+
+<!-- Live Notification Toast Container -->
+<div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-3 pointer-events-none"></div>
 
 <!-- BEGIN: PageContainer -->
 <div class="flex-1 flex overflow-hidden">
@@ -197,7 +223,7 @@ require_once __DIR__ . '/../includes/db_connect.php';
         <!-- Notifications Dropdown Button -->
         <div class="relative">
           <button onclick="toggleDropdown('notifications-dropdown')" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full transition relative" title="Notifications">
-            <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full"></span>
+            <span id="notif-badge" class="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full <?php echo ($pendingOrdersCount > 0) ? '' : 'hidden'; ?>"></span>
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
             </svg>
@@ -205,16 +231,21 @@ require_once __DIR__ . '/../includes/db_connect.php';
 
           <!-- Notifications Popover Menu -->
           <div id="notifications-dropdown" class="hidden absolute right-0 mt-2 w-80 bg-white border border-slate-200 rounded-md shadow-lg py-2 z-50">
-            <div class="px-4 py-1.5 border-b border-slate-100 font-bold text-xs text-slate-900">Notifications</div>
-            <div class="max-h-60 overflow-y-auto divide-y divide-slate-100">
-              <div class="px-4 py-2 hover:bg-slate-50">
-                <p class="text-xs font-medium text-slate-800">New order received from QuickCart</p>
-                <span class="text-[10px] text-slate-400">10 mins ago</span>
-              </div>
-              <div class="px-4 py-2 hover:bg-slate-50">
-                <p class="text-xs font-medium text-slate-800">New member subscription signup</p>
-                <span class="text-[10px] text-slate-400">1 hour ago</span>
-              </div>
+            <div class="px-4 py-1.5 border-b border-slate-100 font-bold text-xs text-slate-900 flex justify-between items-center">
+              <span>Notifications</span>
+              <span id="notif-count-label" class="bg-blue-100 text-blue-800 text-[10px] font-semibold px-1.5 py-0.5 rounded-full"><?php echo $pendingOrdersCount; ?> Pending</span>
+            </div>
+            <div id="notifications-list" class="max-h-60 overflow-y-auto divide-y divide-slate-100">
+              <?php if (empty($recentOrders)): ?>
+                <div class="px-4 py-3 text-xs text-slate-400 text-center">No recent notifications</div>
+              <?php else: ?>
+                <?php foreach ($recentOrders as$ord): ?>
+                  <div class="px-4 py-2 hover:bg-slate-50 cursor-pointer" onclick="switchScreen('orders', document.querySelector('[onclick*=\'orders\']'))">
+                    <p class="text-xs font-medium text-slate-800">New order #<?php echo htmlspecialchars($ord['order_number']); ?></p>
+                    <span class="text-[10px] text-slate-400"><?php echo htmlspecialchars($ord['created_at']); ?></span>
+                  </div>
+                <?php endforeach; ?>
+              <?php endif; ?>
             </div>
           </div>
         </div>
@@ -365,6 +396,36 @@ require_once __DIR__ . '/../includes/db_connect.php';
       element.classList.add('bg-blue-50', 'text-blue-900', 'border-r-4', 'border-blue-600');
       const activeSvg = element.querySelector('svg');
       if (activeSvg) activeSvg.classList.replace('text-slate-500', 'text-blue-600');
+    }
+  }
+
+  // Toast Pop-up Notification Function
+  function showOrderToast(orderNumber, amount) {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = "pointer-events-auto bg-white border border-slate-200 shadow-xl rounded-lg p-4 w-80 toast-animate flex items-start gap-3";
+    toast.innerHTML = `
+      <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+      </div>
+      <div class="flex-1 min-w-0">
+        <p class="text-xs font-bold text-slate-900">New Order Received! (#${orderNumber})</p>
+        <p class="text-xs text-slate-500 mt-0.5">Total: UGX ${Number(amount).toLocaleString()}</p>
+      </div>
+      <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-slate-600 text-sm font-bold">&times;</button>
+    `;
+    container.appendChild(toast);
+    setTimeout(() => { toast.remove(); }, 6000);
+  }
+
+  // Real-Time Polling for New Orders
+  let lastKnownOrderCount = <?php echo $pendingOrdersCount; ?>;
+  async function checkNewOrders() {
+    try {
+      const response = await window.fetch(window.location.href, { headers: { 'X-Poll-Check': '1' } });
+      // For efficiency, you can point this to a lightweight endpoint or api file if desired
+    } catch (e) {
+      // Background poll silently
     }
   }
 
