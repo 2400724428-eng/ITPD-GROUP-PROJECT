@@ -7,7 +7,7 @@ require_once __DIR__ . '/../includes/db_connect.php';
 
 // Auth Guard: Redirect to login if user is not authenticated
 if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php');
+    header('Location:login.php');
     exit;
 }
 
@@ -128,7 +128,7 @@ tailwind.config = { theme: { extend: { fontFamily: { sans: ['"Plus Jakarta Sans"
     </a>
     <div class="flex items-center gap-4">
       <a href="../shop.php" class="text-xs font-bold text-slate-600 hover:text-blue-600 transition-colors hidden sm:inline-block">Shop Catalog</a>
-      <a href="../login_process.php?action=logout" onclick="event.preventDefault(); handleLogout();" class="px-3.5 py-1.5 rounded-xl bg-red-50 text-red-600 text-xs font-bold hover:bg-red-100 transition-colors">
+      <a href="../logout.php" class="px-3.5 py-1.5 rounded-xl bg-red-50 text-red-600 text-xs font-bold hover:bg-red-100 transition-colors">
         Sign Out
       </a>
     </div>
@@ -230,7 +230,7 @@ tailwind.config = { theme: { extend: { fontFamily: { sans: ['"Plus Jakarta Sans"
     <div class="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
       <div class="p-6 border-b border-slate-100">
         <h3 class="font-extrabold text-slate-900 text-base">Order History</h3>
-        <p class="text-xs text-slate-500 mt-1">Review status and details of your supplement orders[cite: 7].</p>
+        <p class="text-xs text-slate-500 mt-1">Review status and details of your supplement orders.</p>
       </div>
 
       <?php if (empty($orders)): ?>
@@ -396,13 +396,6 @@ tailwind.config = { theme: { extend: { fontFamily: { sans: ['"Plus Jakarta Sans"
     } catch (err) {
       console.error('Failed to remove item', err);
     }
-  }
-
-  async function handleLogout() {
-    const formData = new FormData();
-    formData.append('action', 'logout');
-    await fetch('../login_process.php', { method: 'POST', body: formData });
-    window.location.href = '../login.php';
   }
 </script>
 </body>

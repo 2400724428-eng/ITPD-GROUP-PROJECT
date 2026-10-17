@@ -72,7 +72,9 @@
     <?php include 'product/featured.php'; ?>
     <br><br>
     <?php include 'gymn/gymn.php'; ?>
-    <?php include 'includes/bottom.php'; ?>
+    <?php include 'includes/bottom.php'; ?> <br> <br>
+
+       
 
     <!-- Toggle Script -->
     <script>
@@ -89,6 +91,23 @@
         }
       }
     </script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

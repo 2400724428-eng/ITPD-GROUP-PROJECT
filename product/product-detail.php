@@ -44,6 +44,7 @@ if (!$product) {
         'product_price'       => 0,
         'offer_price'         => 0,
         'number_in_stock'     => 0,
+        'unit_type'           => '',
         'image_primary'       => '',
         'image_secondary'     => ''
     ];
@@ -140,6 +141,7 @@ $secondaryImg = !empty($product['image_secondary'])
     : '';
 
 $stockCount = (int)($product['number_in_stock'] ?? 10);
+$unitType   = !empty($product['unit_type']) ? ('/' . $product['unit_type']) : '';
 
 // Current user profile avatar
 $currentUserPhoto = $_SESSION['profile_photo'] ?? $_SESSION['user']['profile_photo'] ?? 'uploads/avatars/default-avatar.png';
@@ -151,7 +153,7 @@ $currentUserName  = $_SESSION['full_name'] ?? $_SESSION['user']['full_name'] ?? 
 <head>
 <meta charset="utf-8">
 <meta content="width=device-width, initial-scale=1.0" name="viewport">
-<title><?php echo htmlspecialchars($product['product_name']); ?> - ApexFit</title>
+<title><?php echo htmlspecialchars($product['product_name']); ?> - PURE GAIN PRODUCT</title>
 <link href="../src/output.css" rel="stylesheet">
 
 <link href="https://fonts.googleapis.com" rel="preconnect">
@@ -186,6 +188,14 @@ $currentUserName  = $_SESSION['full_name'] ?? $_SESSION['user']['full_name'] ?? 
 </style>
 </head>
 <body class="bg-white min-h-screen text-[#2e3a47] flex flex-col justify-between p-4 sm:p-6 md:p-10 lg:p-16 overflow-x-hidden selection:bg-blue-100">
+
+<!-- FLOATING SUCCESS TOAST NOTIFICATION -->
+<div id="toast-msg" class="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-xl transition-all duration-300 opacity-0 translate-y-4 pointer-events-none">
+  <div class="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 text-xs font-bold">
+    <i class="fa-solid fa-check"></i>
+  </div>
+  <span id="toast-text" class="text-xs sm:text-sm font-semibold">Added to cart successfully!</span>
+</div>
 
 <!-- Navigation Back Link -->
 <div class="max-w-7xl mx-auto w-full px-2 sm:px-4 md:px-6 mb-6">
@@ -280,14 +290,18 @@ $currentUserName  = $_SESSION['full_name'] ?? $_SESSION['user']['full_name'] ?? 
         <?php endif; ?>
       </div>
 
-      <!-- CTA Buttons -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 w-full sm:max-w-md pt-2">
-        <button class="w-full py-3.5 px-6 rounded-md bg-[#f2f4f7] hover:bg-[#e7ebf0] active:bg-[#dde2e8] text-[#334155] font-semibold text-sm transition-colors text-center focus:outline-none" type="button">
-          Add to Cart
+      <!-- CTA Button -->
+      <div class="w-full sm:max-w-md pt-2">
+        <button type="button" 
+          id="detail-add-btn"
+          data-id="<?php echo $productId; ?>"
+          data-name="<?php echo htmlspecialchars($product['product_name']); ?>"
+          data-price="<?php echo $effectivePrice; ?>"
+          data-img="<?php echo htmlspecialchars($primaryImg); ?>"
+          data-unit="<?php echo htmlspecialchars($unitType); ?>"
+          class="w-full py-4 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-bold text-sm transition-all text-center shadow-md flex items-center justify-center gap-2">
+          <i class="fa-solid fa-cart-shopping"></i> Add to Cart
         </button>
-        <a href="https://wa.me/?text=<?php echo urlencode("Hello, I want to buy " . $product['product_name'] . " for UGX " . number_format($effectivePrice)); ?>" target="_blank" class="w-full py-3.5 px-6 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-colors text-center shadow-sm inline-block">
-          Buy via WhatsApp
-        </a>
       </div>
 
     </section>
@@ -390,8 +404,84 @@ $currentUserName  = $_SESSION['full_name'] ?? $_SESSION['user']['full_name'] ?? 
 </main>
 
 <script>
+  const isLoggedIn = <?php echo $isLoggedIn ? 'true' : 'false'; ?>;
+  let toastTimer = null;
+
   function switchImage(src) {
     document.getElementById('main-product-img').src = src;
+  }
+
+  // LocalStorage Cart Synchronization matching shop page
+  function addToCart(product) {
+    let cart = JSON.parse(localStorage.getItem('puregain_cart')) || [];
+    const existingIndex = cart.findIndex(item => item.id === product.id);
+
+    if (existingIndex > -1) {
+      cart[existingIndex].quantity += 1;
+    } else {
+      cart.push({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.img,
+        unit: product.unit,
+        quantity: 1
+      });
+    }
+
+    localStorage.setItem('puregain_cart', JSON.stringify(cart));
+  }
+
+  // Toast Notification Controller
+  function showToast(customText = 'Added to cart successfully!') {
+    const toast = document.getElementById("toast-msg");
+    const toastText = document.getElementById("toast-text");
+    if (!toast) return;
+
+    if (toastTimer) clearTimeout(toastTimer);
+    toastText.textContent = customText;
+
+    toast.classList.remove("opacity-0", "translate-y-4", "pointer-events-none");
+    toast.classList.add("opacity-100", "translate-y-0");
+
+    toastTimer = setTimeout(() => {
+      toast.classList.remove("opacity-100", "translate-y-0");
+      toast.classList.add("opacity-0", "translate-y-4", "pointer-events-none");
+    }, 2500);
+  }
+
+  // Bind Add to Cart action on product detail page
+  const addBtn = document.getElementById('detail-add-btn');
+  if (addBtn) {
+    addBtn.addEventListener('click', function() {
+      if (!isLoggedIn) {
+        window.location.href = '../login.php';
+        return;
+      }
+
+      const productData = {
+        id: parseInt(this.dataset.id),
+        name: this.dataset.name,
+        price: parseFloat(this.dataset.price),
+        img: this.dataset.img,
+        unit: this.dataset.unit
+      };
+
+      addToCart(productData);
+      showToast('Added to cart successfully!');
+
+      // Temporarily swap button icon/state for feedback
+      const originalHTML = this.innerHTML;
+      this.innerHTML = '<i class="fa-solid fa-check"></i> Added to Cart';
+      this.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+      this.classList.add('bg-emerald-600', 'hover:bg-emerald-700');
+
+      setTimeout(() => {
+        this.innerHTML = originalHTML;
+        this.classList.remove('bg-emerald-600', 'hover:bg-emerald-700');
+        this.classList.add('bg-blue-600', 'hover:bg-blue-700');
+      }, 1200);
+    });
   }
 </script>
 </body>

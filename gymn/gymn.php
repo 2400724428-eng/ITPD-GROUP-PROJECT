@@ -96,7 +96,7 @@
           <li><i class="fa-solid fa-check text-sky-500 mr-2"></i>Group classes (4 per month)</li>
           <li><i class="fa-solid fa-check text-sky-500 mr-2"></i>Starter workout plan</li>
         </ul>
-        <a href="membership.php" class="mt-6 text-center px-6 py-3 rounded-full border border-slate-300 font-semibold text-[14px] hover:border-blue-400 hover:text-blue-600 transition-colors">Get Started</a>
+        <a href="../portal/portalogin.php" class="mt-6 text-center px-6 py-3 rounded-full border border-slate-300 font-semibold text-[14px] hover:border-blue-400 hover:text-blue-600 transition-colors">Get Started</a>
       </article>
       <article class="lift relative flex flex-col bg-white rounded-3xl border-2 border-blue-600 shadow-md p-6">
         <span class="absolute -top-3 left-6 bg-blue-600 text-white text-[11px] font-extrabold px-3 py-1 rounded-full">MOST POPULAR</span>
@@ -108,7 +108,7 @@
           <li><i class="fa-solid fa-check text-sky-500 mr-2"></i>4 personal training sessions</li>
           <li><i class="fa-solid fa-check text-sky-500 mr-2"></i>Nutrition guide</li>
         </ul>
-        <a href="membership.php" class="mt-6 text-center px-6 py-3 rounded-full bg-blue-600 text-white font-semibold text-[14px] shadow-sm hover:bg-blue-700 transition-colors">Join Pro</a>
+        <a href="../portal/portalogin.php" class="mt-6 text-center px-6 py-3 rounded-full bg-blue-600 text-white font-semibold text-[14px] shadow-sm hover:bg-blue-700 transition-colors">Join Pro</a>
       </article>
       <article class="lift flex flex-col bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
         <h3 class="font-bold text-slate-900 text-lg">Elite</h3>
@@ -119,7 +119,7 @@
           <li><i class="fa-solid fa-check text-sky-500 mr-2"></i>Custom meal plan</li>
           <li><i class="fa-solid fa-check text-sky-500 mr-2"></i>Weekly progress check-ins</li>
         </ul>
-        <a href="membership.php" class="mt-6 text-center px-6 py-3 rounded-full border border-slate-300 font-semibold text-[14px] hover:border-blue-400 hover:text-blue-600 transition-colors">Go Elite</a>
+        <a href="../portal/portalogin.php" class="mt-6 text-center px-6 py-3 rounded-full border border-slate-300 font-semibold text-[14px] hover:border-blue-400 hover:text-blue-600 transition-colors">Go Elite</a>
       </article>
     </div>
   </section>

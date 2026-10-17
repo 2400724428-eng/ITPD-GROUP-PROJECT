@@ -6,7 +6,10 @@ if (session_status() === PHP_SESSION_NONE) {
 $isLoggedIn = isset($_SESSION['user_id']);
 $userName   = $isLoggedIn ? $_SESSION['full_name'] : 'Guest User';
 $userEmail  = $isLoggedIn ? $_SESSION['email'] : 'Sign in to manage portal';
-$userPhoto  = $isLoggedIn ? ($_SESSION['profile_photo'] ?? 'uploads/avatars/default-avatar.png') : 'uploads/avatars/default-avatar.png';
+$rawPhoto   = $isLoggedIn ? ($_SESSION['profile_photo'] ?? '') : '';
+
+$hasValidPhoto = !empty($rawPhoto) && $rawPhoto !== 'uploads/avatars/default-avatar.png';
+$userPhoto     = $hasValidPhoto ? ((strpos($rawPhoto, 'http') === 0) ? $rawPhoto : './' . ltrim($rawPhoto, '/')) : '';
 
 // Fetch user order count if logged in
 $orderCount = 0;
@@ -24,7 +27,13 @@ if ($isLoggedIn) {
     <!-- Trigger Link -->
     <button type="button" class="js-account-toggle flex items-center space-x-1.5 text-[14px] font-medium hover:text-blue-600 transition-colors pl-1 cursor-pointer select-none focus:outline-none">
         <?php if ($isLoggedIn): ?>
-            <img src="<?= htmlspecialchars($userPhoto) ?>" alt="User Avatar" class="w-6 h-6 rounded-full object-cover border border-blue-600 shrink-0"/>
+            <?php if ($hasValidPhoto): ?>
+                <img src="<?= htmlspecialchars($userPhoto) ?>" alt="User Avatar" class="w-6 h-6 rounded-full object-cover border border-blue-600 shrink-0"/>
+            <?php else: ?>
+                <div class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <i class="fa-solid fa-user text-[10px]"></i>
+                </div>
+            <?php endif; ?>
             <span class="js-account-label font-bold text-slate-900"><?= htmlspecialchars(explode(' ', $userName)[0]) ?></span>
         <?php else: ?>
             <svg class="js-account-icon w-5 h-5 stroke-[2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">

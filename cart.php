@@ -227,7 +227,7 @@ tailwind.config={"darkMode":"class","theme":{"extend":{"colors":{"inverse-surfac
                     <i class="fa-brands fa-whatsapp text-4xl text-green-600"></i>
                 </div>
                 <h3 class="text-xl sm:text-2xl font-bold text-gray-900">You're one step away!</h3>
-                <p class="mt-2 max-w-md mx-auto text-sm leading-6 text-gray-500">Send your order to our WhatsApp team. We'll confirm product availability and details with you[cite: 1, 2].</p>
+                <p class="mt-2 max-w-md mx-auto text-sm leading-6 text-gray-500">Send your order to our WhatsApp team. We'll confirm product availability and details with you.</p>
             </div>
 
             <div class="rounded-2xl border border-green-100 bg-green-50/70 p-5 sm:p-6 mb-6">
@@ -370,11 +370,15 @@ tailwind.config={"darkMode":"class","theme":{"extend":{"colors":{"inverse-surfac
           <a href="shop.php" class="inline-block mt-4 px-6 py-2.5 bg-primary text-on-primary rounded-lg font-label-md shadow-sm">Browse Shop</a>
         </div>`;
     } else {
-      let itemsHTML = cart.map(item => `
+      let itemsHTML = cart.map(item => {
+        // Automatically strip leading '../' so images load correctly from root pages
+        const cleanImg = item.image ? item.image.replace(/^\.\.\//, '') : 'https://images.unsplash.com/photo-1546483875-ad9014c88eba?auto=format&fit=crop&w=500&q=80';
+        
+        return `
         <div class="p-4 sm:p-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 border-b border-surface-container-low last:border-0">
           <div class="flex items-center gap-4 flex-1">
             <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden bg-surface-container-high flex-shrink-0 flex items-center justify-center p-1">
-              <img class="max-h-full max-w-full object-contain" alt="${item.name}" src="${item.image}"/>
+              <img class="max-h-full max-w-full object-contain" alt="${item.name}" src="${cleanImg}"/>
             </div>
             <div class="min-w-0 flex-1">
               <h3 class="font-bold text-on-surface text-base truncate">${item.name}</h3>
@@ -395,7 +399,8 @@ tailwind.config={"darkMode":"class","theme":{"extend":{"colors":{"inverse-surfac
             </div>
           </div>
         </div>
-      `).join('');
+      `;
+      }).join('');
 
       cartContainer.innerHTML = `
         <div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">

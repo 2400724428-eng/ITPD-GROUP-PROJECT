@@ -547,7 +547,7 @@ tailwind.config = {
   // Redirect target set straight to user dashboard
   const REDIRECT_URL = 'users/dashboard.php';
 
-  const $ = (s, r = document) => r.querySelector(s);   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  const $ = (s, r = document) => r.querySelector(s); const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 
   $$('.form-panel').forEach(panel => {$$
 ('.rise', panel).forEach((el, i) => {
@@ -606,7 +606,7 @@ tailwind.config = {
     }, 450);
   }
 
-  $$('[data-mode]').forEach(el => {     el.addEventListener('click', () => setMode(el.dataset.mode));   });    if (location.hash === '#register') {     setMode('register', { updateHash: false });   }    $$
+  $$('[data-mode]').forEach(el => { el.addEventListener('click', () => setMode(el.dataset.mode)); });    if (location.hash === '#register') { setMode('register', { updateHash: false }); }    $$
 ('[data-toggle]').forEach(btn => {
     btn.addEventListener('click', () => {
       const input = document.getElementById(btn.dataset.toggle);
@@ -635,7 +635,7 @@ tailwind.config = {
     return Math.max(s, 1);
   }
 
-  $('#reg-password').addEventListener('input', e => {     const score = scorePassword(e.target.value);     $$('.strength-seg').forEach((seg, i) => {
+  $('#reg-password').addEventListener('input', e => { const score = scorePassword(e.target.value); $$('.strength-seg').forEach((seg, i) => {
       seg.className = 'strength-seg h-1.5 flex-1 rounded-full transition-colors duration-300 ' + (i < score ? STRENGTH[score].c : 'bg-slate-200');
     });
     $('#strength-label').textContent = STRENGTH[score].t || '\u00a0';

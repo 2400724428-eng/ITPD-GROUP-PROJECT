@@ -1,6 +1,9 @@
 <?php
-// Enable output buffering at the very first line to prevent "headers already sent" errors
+// Enable output buffering and sessions at the very first line to prevent headers/session issues
 ob_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 require_once __DIR__ . '/../includes/db_connect.php';
 
 // Fetch initial pending/new order count and recent orders for notifications

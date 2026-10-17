@@ -6,12 +6,21 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once __DIR__ . '/db_connect.php';
 
 $dbWishlistCount = 0;
-if (isset($_SESSION['user_id'])) {
+$userId = isset($_SESSION['user_id'])
+    ? (int) $_SESSION['user_id']
+    : 0;
+
+if ($userId > 0) {
     try {
-        $stmt =$pdo->prepare("SELECT COUNT(*) FROM wishlist WHERE user_id = ?");
-        $stmt->execute([$_SESSION['user_id']]);
+        $stmt =$pdo->prepare(
+            "SELECT COUNT(*) FROM wishlist WHERE user_id = ?"
+        );
+        $stmt->execute([$userId]);
+
         $dbWishlistCount = (int)$stmt->fetchColumn();
-    } catch (\PDOException $e) {$dbWishlistCount = 0;
+    } catch (PDOException $e) {
+        // Keep the page working if the wishlist query fails.
+        error_log('Wishlist count error: ' . $e->getMessage());$dbWishlistCount = 0;
     }
 }
 ?>
@@ -167,16 +176,25 @@ if (isset($_SESSION['user_id'])) {
     </svg>
   </button>
 
-  <!-- Wishlist Symbol & Counter Badge (Real Database Count) -->
-  <a aria-label="Wishlist" class="relative p-1.5 hover:text-blue-600 hover:bg-slate-100 rounded-full transition-colors" href="users/dashboard.php">
-    <svg class="w-5 h-5 stroke-[2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" stroke-linecap="round" stroke-linejoin="round"></path>
-    </svg>
-    <span id="wishlist-badge" class="absolute top-0.5 right-0.5 bg-red-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center" style="<?= $dbWishlistCount > 0 ? '' : 'display: none;' ?>"><?= $dbWishlistCount ?></span>
+  <!-- Wishlist Icon: Fixed Layout & Alignment -->
+  <a
+      aria-label="Wishlist (<?= $dbWishlistCount ?> items)"
+      title="My Wishlist"
+      class="relative p-1.5 hover:text-blue-600 hover:bg-slate-100 rounded-full transition-colors inline-flex items-center justify-center"
+      href="users/dashboard.php"
+  >
+      <svg class="w-5 h-5 stroke-[2]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span
+          id="wishlist-badge"
+          class="absolute top-0.5 right-0.5 bg-red-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center"
+          style="<?= $dbWishlistCount > 0 ? 'display: flex;' : 'display: none;' ?>"
+      ><?= $dbWishlistCount ?></span>
   </a>
 
   <!-- Cart Symbol & Counter Badge (LocalStorage Dynamic Count) -->
-  <a aria-label="Cart" class="relative p-1.5 hover:text-blue-600 hover:bg-slate-100 rounded-full transition-colors" href="cart.php">
+  <a aria-label="Cart" class="relative p-1.5 hover:text-blue-600 hover:bg-slate-100 rounded-full transition-colors inline-flex items-center justify-center" href="cart.php">
     <svg class="w-5 h-5 stroke-[2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" stroke-linecap="round" stroke-linejoin="round"></path>
     </svg>
