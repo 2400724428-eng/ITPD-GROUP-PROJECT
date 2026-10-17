@@ -1,4 +1,7 @@
 <?php
+
+
+
 // Step out to root to require database connection
 require_once __DIR__ . '/includes/db_connect.php';
 
@@ -117,11 +120,20 @@ try {
 </head>
 <body class="bg-white text-slate-800 font-sans antialiased min-h-screen py-5 sm:py-8 px-3 sm:px-6 lg:px-8">
 
+
 <?php 
 if (file_exists(__DIR__ . '/includes/top.php')) {
     include __DIR__ . '/includes/top.php'; 
 }
 ?>
+
+<!-- FLOATING WISHLIST WIDGET -->
+<a href="wishlist.php" id="floating-wishlist" class="fixed bottom-6 left-6 z-40 bg-white border border-slate-200 text-slate-800 p-3.5 rounded-full shadow-2xl flex items-center justify-center hover:scale-105 transition-transform group" aria-label="View Wishlist">
+  <div class="relative flex items-center justify-center w-6 h-6">
+    <i class="fa-solid fa-heart text-red-500 text-lg"></i>
+    <span id="wishlist-counter" class="absolute -top-2 -right-2 bg-red-500 text-white font-extrabold text-[10px] w-5 h-5 rounded-full flex items-center justify-center shadow-md">0</span>
+  </div>
+</a>
 
 <!-- FLOATING SUCCESS TOAST NOTIFICATION -->
 <div id="toast-msg" class="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-xl transition-all duration-300 opacity-0 translate-y-4 pointer-events-none">
@@ -210,7 +222,15 @@ if (file_exists(__DIR__ . '/includes/top.php')) {
   let loadTimer = null;
   let toastTimer = null;
 
-  // Toggle Like and Sync with Database via Fetch API (pointing to admin/api/)
+  // Update the floating wishlist counter badge
+  function updateWishlistCounter() {
+    const counterEl = $("wishlist-counter");
+    if (counterEl) {
+      counterEl.textContent = userWishlist.length;
+    }
+  }
+
+  // Toggle Like and Sync with Database via Fetch API
   function toggleLike(productId) {
     if (!isLoggedIn) {
       window.location.href = 'login.php'; 
@@ -231,7 +251,10 @@ if (file_exists(__DIR__ . '/includes/top.php')) {
       showToast('Added to wishlist');
     }
 
-    // Send request to backend API endpoint to update database table `wishlist`
+    // Refresh the counter badge on change
+    updateWishlistCounter();
+
+    // Send request to backend API endpoint to update database table `wishlist` using absolute path
     fetch('admin/api/toggle_wishlist.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -241,9 +264,11 @@ if (file_exists(__DIR__ . '/includes/top.php')) {
     .then(data => {
       if (!data.success) {
         console.error('Failed to update database wishlist:', data.message);
+      } else {
+        console.log('Wishlist successfully synced to DB:', data.status);
       }
     })
-    .catch(error => console.error('Error syncing wishlist:', error));
+    .catch(error => console.error('Error syncing wishlist network request:', error));
   }
 
   function updateHeartIcon(productId, isLiked) {
@@ -471,6 +496,8 @@ if (file_exists(__DIR__ . '/includes/top.php')) {
     state.cat = urlCat;
   }
 
+  // Initializing count on page load
+  updateWishlistCounter();
   triggerLoading();
 </script>
 </body>

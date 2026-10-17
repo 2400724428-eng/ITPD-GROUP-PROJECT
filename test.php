@@ -1,100 +1,176 @@
 <?php
-session_start();
-require_once 'includes/db_connect.php'; // adjust path if needed
+// Step out to root to require database connection
+require_once __DIR__ . '/includes/db_connect.php';
 
-$errors = [];
-$success = false;
+// Start session if not already active
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+$userId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = trim($_POST['email'] ?? '');
+try {
+    // Fetch Categories dynamically from database
+    $catStmt = $pdo->query("SELECT DISTINCT name FROM categories ORDER BY name ASC");
+    $dbCategories = $catStmt->fetchAll(PDO::FETCH_COLUMN);
 
-    if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $errors[] = "Please enter a valid email address.";
-    } else {
-        // Check if email exists
-        $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ? LIMIT 1");
-        $stmt->execute([$email]);
-        $user = $stmt->fetch();
+    if (empty($dbCategories)) {
+        $catStmt = $pdo->query("SELECT DISTINCT category FROM products WHERE category IS NOT NULL AND category != '' ORDER BY category ASC");
+        $dbCategories = $catStmt->fetchAll(PDO::FETCH_COLUMN);
+    }
 
-        if ($user) {
-            // Generate 6-digit PIN
-            $pin = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-            $token_hash = password_hash($pin, PASSWORD_DEFAULT);
-            $expires_at = date('Y-m-d H:i:s', strtotime('+15 minutes'));
+    // Fetch user's wishlist IDs directly from database if logged in
+    $userWishlist = [];
+    if ($userId > 0) {
+        $wishStmt = $pdo->prepare("SELECT product_id FROM wishlist WHERE user_id = ?");
+        $wishStmt->execute([$userId]);
+        $userWishlist = $wishStmt->fetchAll(PDO::FETCH_COLUMN);
+        $userWishlist = array_map('intval', $userWishlist);
+    }
 
-            // Delete any old unused tokens for this email
-            $pdo->prepare("DELETE FROM password_resets WHERE email = ?")->execute([$email]);
+    // Fetch up to 7 featured products from database for the showcase section
+    $showcaseStmt = $pdo->query("
+        SELECT 
+            p.id, 
+            p.product_name AS name, 
+            p.category AS cat, 
+            p.product_price AS price, 
+            p.offer_price AS offer, 
+            p.discount_percentage AS discount, 
+            p.unit_type AS unit, 
+            p.image_primary AS img,
+            COALESCE(ROUND(AVG(c.rating), 1), 0) AS real_rating,
+            COUNT(c.id) AS real_reviews
+        FROM products p
+        LEFT JOIN comments c ON p.id = c.product_id
+        GROUP BY p.id
+        ORDER BY p.id DESC
+        LIMIT 7
+    ");
+    $showcaseProducts = $showcaseStmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Store new token
-            $stmt = $pdo->prepare(
-                "INSERT INTO password_resets (email, token_hash, expires_at) VALUES (?, ?, ?)"
-            );
-            $stmt->execute([$email, $token_hash, $expires_at]);
-
-            // Send email
-            $subject = "Your Password Reset PIN - Pure Gain";
-            $message = "Hello,\n\n"
-                     . "You requested a password reset for your Pure Gain account.\n\n"
-                     . "Your 6-digit PIN is: $pin\n\n"
-                     . "This PIN is valid for 15 minutes.\n\n"
-                     . "If you did not request this, please ignore this email.\n\n"
-                     . "— Pure Gain Team";
-            $headers = "From: noreply@yourdomain.com\r\n";
-            $headers .= "Reply-To: noreply@yourdomain.com\r\n";
-            $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
-
-            // On free hosting mail() often works. For better reliability use PHPMailer later.
-            @mail($email, $subject, $message, $headers);
+    $formattedShowcase = array_map(function($p) {
+        $price = (float)$p['price'];
+        $offer = (float)$p['offer'];
+        $effectivePrice = ($offer > 0 && $offer < $price) ? $offer : $price;
+        $discount = (float)$p['discount'];
+        
+        if ($discount <= 0 && $offer > 0 && $offer < $price) {
+            $discount = round((($price - $offer) / $price) * 100);
         }
 
-        // Always show success message (prevents email enumeration)
-        $_SESSION['reset_email'] = $email; // pass email securely to next page
-        header("Location: reset-password.php");
-        exit;
-    }
+        return [
+            'id'      => (int)$p['id'],
+            'name'    => $p['name'],
+            'cat'     => $p['cat'] ?: 'General',
+            'price'   => $effectivePrice,
+            'old'     => ($offer > 0 && $offer < $price) ? $price : null,
+            'unit'    => $p['unit'] ? ('/' . $p['unit']) : '',
+            'rating'  => (float)$p['real_rating'], 
+            'reviews' => (int)$p['real_reviews'],  
+            'off'     => round($discount),
+            'img'     => !empty($p['img']) ? $p['img'] : 'https://images.unsplash.com/photo-1546483875-ad9014c88eba?auto=format&fit=crop&w=500&q=80'
+        ];
+    }, $showcaseProducts);
+} catch (\PDOException $e) {
+    $dbCategories = [];
+    $formattedShowcase = [];
+    $userWishlist = [];
 }
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" type="image/png" href="assets/images/fav.png"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Forgot Password – Pure Gain</title>
+    <title>Pure Gain</title>
     <link href="./src/output.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>body{font-family:'Plus Jakarta Sans',sans-serif}</style>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
 </head>
-<body class="bg-slate-50 min-h-screen flex items-center justify-center p-4">
+<body class="bg-slate-50 text-slate-800">
 
-<div class="w-full max-w-md bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-    <h1 class="text-2xl font-bold text-slate-900 mb-2">Forgot Password</h1>
-    <p class="text-slate-600 text-sm mb-6">Enter your registered email and we’ll send you a 6-digit PIN.</p>
+    <?php include 'includes/top.php'; ?>
 
-    <?php if (!empty($errors)): ?>
-        <div class="mb-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg">
-            <?= htmlspecialchars($errors[0]) ?>
+    <!-- ================= MINIMAL DROPDOWN ARROW BAR ================= -->
+    <div class="max-w-[1060px] w-full mx-auto px-4 sm:px-6 my-4" id="sdg3">
+      
+      <!-- Minimal Dropdown Button -->
+      <button 
+        onclick="toggleSdgDropdown()" 
+        id="sdgBtn"
+        class="flex items-center gap-2 text-slate-700 hover:text-blue-600 transition-colors py-2 text-sm font-semibold focus:outline-none cursor-pointer group">
+        
+        <!-- Small SDG 3 Badge -->
+        <span class="w-5 h-5 rounded bg-blue-600 text-white font-bold text-[11px] flex items-center justify-center shrink-0">
+          3
+        </span>
+
+        <span>SDG 3 – Good Health and Well-being</span>
+
+        <!-- Small Dropdown Arrow Symbol (Rotates on click) -->
+        <svg id="sdgArrow" class="w-4 h-4 text-slate-500 group-hover:text-blue-600 transition-transform duration-200 transform rotate-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      <!-- Content (Hidden until dropdown arrow is clicked) -->
+      <div id="sdgContent" class="hidden pt-3 pb-6 text-slate-600 text-sm leading-relaxed border-t border-slate-200 mt-1">
+        <p class="max-w-3xl mb-4">
+          Pure Gain contributes to <strong>SDG 3 – Good Health and Well-being</strong> by making quality fitness training, 
+          nutrition guidance, and performance support more accessible. Regular physical activity and good nutrition help 
+          prevent non-communicable diseases, improve mental well-being, and support healthier communities — especially 
+          for young people and busy adults in Kampala and beyond.
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 my-4">
+          <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+            <h4 class="font-bold text-slate-900 mb-1">Physical Health</h4>
+            <p class="text-xs text-slate-600">Structured training and strength programmes help reduce risk factors for heart disease, diabetes, and obesity.</p>
+          </div>
+          
+          <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+            <h4 class="font-bold text-slate-900 mb-1">Mental Well-being</h4>
+            <p class="text-xs text-slate-600">Exercise and community classes support better mood, lower stress, improved sleep, and stronger social connections.</p>
+          </div>
+
+          <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+            <h4 class="font-bold text-slate-900 mb-1">Accessible Support</h4>
+            <p class="text-xs text-slate-600">Affordable membership plans, online coaching, and nutrition advice that works with local foods make healthy living more reachable.</p>
+          </div>
         </div>
+
+        <div class="flex items-center justify-between text-xs text-slate-500 pt-2">
+          <span>This project is part of our school group contribution to the UN Sustainable Development Goals.</span>
+          <a href="https://sdgs.un.org/goals/goal3" target="_blank" rel="noopener" class="text-blue-600 hover:underline font-medium">Learn more &rarr;</a>
+        </div>
+      </div>
+
+    </div>
+    <br>
+
+    <!-- ================= SMALL CATEGORIES CHIPS SECTION ================= -->
+    <?php if (!empty($dbCategories)): ?>
+    <div class="max-w-[1060px] w-full mx-auto px-4 sm:px-6 mb-6">
+      <div class="no-scrollbar flex items-center gap-1.5 overflow-x-auto py-1">
+        <a href="shop.php" class="shrink-0 px-3 py-1.5 rounded-lg bg-slate-900 text-white text-[11px] font-bold hover:bg-blue-600 transition-colors">
+          All
+        </a>
+        <?php foreach ($dbCategories as $cat): ?>
+          <a href="shop.php?cat=<?= urlencode($cat) ?>" class="shrink-0 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 text-[11px] font-semibold hover:border-blue-600 hover:text-blue-600 transition-colors shadow-2xs">
+            <?= htmlspecialchars($cat) ?>
+          </a>
+        <?php endforeach; ?>
+      </div>
+    </div>
     <?php endif; ?>
 
-    <form method="POST" action="">
-        <div class="mb-5">
-            <label class="block text-sm font-medium text-slate-700 mb-1.5">Email address</label>
-            <input type="email" name="email" required
-                   class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
-                   placeholder="you@example.com"
-                   value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
-        </div>
-
-        <button type="submit"
-                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl transition">
-            Send Reset PIN
-        </button>
-    </form>
-
-    <p class="mt-6 text-center text-sm text-slate-500">
-        <a href="login.php" class="text-blue-600 hover:underline">Back to Login</a>
-    </p>
-</div>
+    <!-- PHP Content Below -->
+    <?php include 'product/featured.php'; ?>
+    <br><br>
 
 </body>
 </html>

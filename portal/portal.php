@@ -1,739 +1,716 @@
+<?php
+// portal.php — Member Portal with Database Subscriptions, WhatsApp Payment, & Approval-Based Access Control
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+$dbPath = __DIR__ . '/../includes/db_connect.php';
+if (file_exists($dbPath)) {
+    require_once $dbPath;
+} else {
+    $altPath = __DIR__ . '/db_connect.php';
+    if (file_exists($altPath)) {
+        require_once $altPath;
+    } else {
+        die("<b>Database Error:</b> Could not find <code>db_connect.php</code>.");
+    }
+}
+
+// Trainer/member assignments are stored in the same database as the existing gym tables.
+if (isset($pdo)) {
+    try {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS gym_trainer_assignments (
+            assignment_id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            member_id INT NOT NULL UNIQUE,
+            trainer_id INT NOT NULL,
+            package_name VARCHAR(120) NULL,
+            sessions_per_week INT NULL,
+            assigned_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            assigned_by INT NULL,
+            INDEX idx_assignment_trainer (trainer_id),
+            INDEX idx_assignment_member (member_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    } catch (PDOException $e) {
+        // A database account without CREATE permission should have the table created manually.
+    }
+}
+
+$selectedUserId = isset($_GET['user_id']) ? (int)$_GET['user_id'] : 11;
+
+// Calendar tracking variables for member plan view
+$currentMonth = isset($_GET['month']) ? (int)$_GET['month'] : (int)date('m');
+$currentYear = isset($_GET['year']) ? (int)$_GET['year'] : (int)date('Y');
+$memberTrainingDays = [];
+$memberNotifications = [];
+
+// Handle AJAX / Form request to record payment attempt in gym_records (`gymn_suscrption`)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['log_subscription_attempt'])) {
+    header('Content-Type: application/json');
+    $planTitle = trim($_POST['plan_title'] ?? '');
+    $amount = (int)($_POST['amount'] ?? 0);
+    $memberName = trim($_POST['member_name'] ?? 'Member');
+
+    if (!empty($planTitle) && isset($pdo)) {
+        try {
+            $payload = json_encode([
+                'member_name' => $memberName,
+                'plan' => $planTitle,
+                'amount' => $amount,
+                'payment_channel' => 'WhatsApp (0761448094)'
+            ]);
+
+            // Recorded into gym_records table with pending status awaiting admin approval
+            $ins = $pdo->prepare("INSERT INTO gym_records (user_id, record_type, title, status, numeric_value, payload) VALUES (?, 'gymn_suscrption', ?, 'pending', ?, ?)");
+            $ins->execute([$selectedUserId, $planTitle, $amount, $payload]);
+
+            echo json_encode(['success' => true]);
+            exit;
+        } catch (\PDOException $ex) {
+            echo json_encode(['success' => false, 'error' => $ex->getMessage()]);
+            exit;
+        }
+    }
+    echo json_encode(['success' => false, 'error' => 'Invalid data']);
+    exit;
+}
+
+// Handle new message submission from member to trainer
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_message'])) {
+    $msgBody = trim($_POST['message_body'] ?? '');
+    if (!empty($msgBody) && isset($pdo)) {
+        try {
+            $payload = json_encode([
+                'sender' => 'member',
+                'body' => $msgBody
+            ]);
+            $ins = $pdo->prepare("INSERT INTO gym_records (user_id, record_type, title, status, payload) VALUES (?, 'message', ?, 'active', ?)");
+            $ins->execute([$selectedUserId, $msgBody, $payload]);
+            
+            header("Location: portal.php?user_id=" . $selectedUserId);
+            exit;
+        } catch (\PDOException $ex) {
+            $dbError = $ex->getMessage();
+        }
+    }
+}
+
+// Handle class booking / cancellation (Only permitted if subscription is approved)
+$isSubscriptionApproved = false;
+
+// Default fallbacks
+$me = ['name' => 'Grace Nakato', 'id' => 'APX-0231', 'profile_pic' => ''];
+$coach = ['name' => 'Coach James', 'exp' => '5 yrs', 'since' => '16 Oct', 'profile_pic' => ''];
+$memList = []; $clsList = [];
+$upcomingSessions = [];
+$histList = []; $rewardList = [];
+$chatList = [];
+$workoutPlan = ['title' => 'General Fitness', 'notes' => 'Stay active and hydrated.', 'protein' => 130, 'water' => 2.5];
+$pointsBalance = 0;
+$debugRecordsFound = 0;
+$bookedClassTitles = [];
+
+if (isset($pdo)) {
+    try {
+        $stmtUser = $pdo->prepare("SELECT * FROM gymnuser WHERE user_id = ? LIMIT 1");
+        $stmtUser->execute([$selectedUserId]);
+        if ($userData = $stmtUser->fetch(PDO::FETCH_ASSOC)) {
+            if (!empty($userData['email'])) {
+                $parts = explode('@', $userData['email']);
+                $me['name'] = ucfirst($userData['trainer_name'] ?? $userData['name'] ?? $parts[0]);
+            }
+            $me['id'] = 'APX-' . sprintf('%04d', $userData['user_id']);
+            $me['profile_pic'] = $userData['profile_pic'] ?? $userData['avatar'] ?? '';
+        }
+
+        // Fetch user records (memberships, subscriptions, messages, bookings, etc.)
+        $stmtRecords = $pdo->prepare("SELECT * FROM gym_records WHERE user_id = ? ORDER BY created_at ASC");
+        $stmtRecords->execute([$selectedUserId]);
+        while ($row = $stmtRecords->fetch(PDO::FETCH_ASSOC)) {
+            $debugRecordsFound++;
+            $payload = json_decode($row['payload'], true) ?? [];
+            
+            switch ($row['record_type']) {
+                case 'gymn_suscrption':
+                case 'subscription':
+                case 'membership_plan':
+                    if (strtolower($row['status']) === 'approved' || strtolower($row['status']) === 'active') {
+                        $isSubscriptionApproved = true;
+                    }
+                    $memList[] = [
+                        'ic' => 'fa-dumbbell', 
+                        'c' => 'bg-sky-100 text-sky-600',
+                        'n' => $row['title'] ?? 'Gym Membership', 
+                        's' => ucfirst($row['status'] ?? 'Pending'), 
+                        'a' => (int)($row['numeric_value'] ?? 0), 
+                        'd' => date('d M Y', strtotime($row['created_at'])),
+                        'l' => 22,
+                        't' => 30
+                    ];
+                    break;
+
+                case 'class_booking':
+                    $bookedClassTitles[] = $row['title'];
+                    $upcomingSessions[] = [
+                        'n' => $row['title'],
+                        'w' => !empty($row['start_time']) ? date('D g:i A', strtotime($row['start_time'])) : 'Scheduled'
+                    ];
+                    break;
+
+                case 'message':
+                    $sender = $payload['sender'] ?? 'member';
+                    $chatList[] = [
+                        'me' => ($sender === 'trainer') ? 0 : 1, 
+                        'x' => $payload['body'] ?? $row['title'], 
+                        't' => date('H:i', strtotime($row['created_at']))
+                    ];
+                    break;
+
+                case 'workout_plan':
+                    $workoutPlan['title'] = $row['title'] ?? 'Workout Plan';
+                    $workoutPlan['protein'] = $payload['protein_g'] ?? 130;
+                    $workoutPlan['water'] = $payload['water_litres'] ?? 2.5;
+                    $workoutPlan['notes'] = $payload['nutrition_notes'] ?? '';
+                    break;
+
+                case 'reward_ledger':
+                    $pointsBalance += (int)($row['numeric_value'] ?? 0);
+                    break;
+            }
+        }
+
+        // Fetch only the trainer assigned to this member. Never show an arbitrary trainer.
+        $coachNameForBooking = 'Pending Assignment';
+        $coach = ['name' => 'Pending Assignment', 'exp' => '', 'since' => '', 'profile_pic' => '', 'assigned' => false, 'trainer_id' => 0];
+        $stmtCoach = $pdo->prepare("SELECT u.* FROM gym_trainer_assignments a
+            INNER JOIN gymnuser u ON u.user_id = a.trainer_id
+            WHERE a.member_id = ? AND LOWER(COALESCE(u.role, '')) = 'trainer' LIMIT 1");
+        $stmtCoach->execute([$selectedUserId]);
+        if ($t = $stmtCoach->fetch(PDO::FETCH_ASSOC)) {
+            $rawName = $t['trainer_name'] ?? $t['name'] ?? '';
+            if ($rawName === '' && !empty($t['email'])) $rawName = explode('@', $t['email'])[0];
+            $coachNameForBooking = 'Coach ' . ucfirst($rawName ?: 'Trainer');
+            $coach = [
+                'name' => $coachNameForBooking,
+                'exp' => '',
+                'since' => '',
+                'profile_pic' => $t['profile_pic'] ?? $t['avatar'] ?? '',
+                'assigned' => true,
+                'trainer_id' => (int)$t['user_id']
+            ];
+        }
+
+        // Handle class booking / cancellation action only if subscription is approved
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_booking'])) {
+            if ($isSubscriptionApproved) {
+                $classTitle = trim($_POST['class_title'] ?? '');
+                $classTime = trim($_POST['class_time'] ?? '');
+                $trainerName = trim($_POST['trainer_name'] ?? $coachNameForBooking);
+                $action = $_POST['action'] ?? 'book';
+
+                if (!empty($classTitle)) {
+                    if ($action === 'book') {
+                        $bookingPayload = json_encode([
+                            'booked_by' => $selectedUserId,
+                            'member_name' => $me['name'],
+                            'trainer_name' => $trainerName,
+                            'class_time' => $classTime
+                        ]);
+                        $ins = $pdo->prepare("INSERT INTO gym_records (user_id, record_type, title, status, start_time, payload) VALUES (?, 'class_booking', ?, 'confirmed', ?, ?)");
+                        $ins->execute([$selectedUserId, $classTitle, $classTime, $bookingPayload]);
+                    } else {
+                        $del = $pdo->prepare("DELETE FROM gym_records WHERE user_id = ? AND record_type = 'class_booking' AND title = ?");
+                        $del->execute([$selectedUserId, $classTitle]);
+                    }
+                    header("Location: portal.php?user_id=" . $selectedUserId);
+                    exit;
+                }
+            }
+        }
+
+        // Fetch Notifications sent to this member or broadcasted to all
+        $stmtNotifs = $pdo->prepare("SELECT * FROM gym_records WHERE record_type = 'notification' AND (user_id = ? OR payload LIKE ?) ORDER BY created_at DESC");
+        $stmtNotifs->execute([$selectedUserId, '%"recipient":"all"%']);
+        while ($nRow = $stmtNotifs->fetch(PDO::FETCH_ASSOC)) {
+            $nPayload = json_decode($nRow['payload'], true) ?? [];
+            $memberNotifications[] = [
+                'title' => $nRow['title'],
+                'body' => $nPayload['body'] ?? '',
+                'time' => date('D d M Y, g:i A', strtotime($nRow['created_at']))
+            ];
+        }
+
+        // Fetch Trainer's ticked training plan days for this member for the active month
+        $planTitle = "Plan-$currentYear-$currentMonth";
+        $planStmt = $pdo->prepare("SELECT payload FROM gym_records WHERE user_id = ? AND record_type = 'training_plan' AND title = ? LIMIT 1");
+        $planStmt->execute([$selectedUserId, $planTitle]);
+        if ($pRow = $planStmt->fetch(PDO::FETCH_ASSOC)) {
+            $pData = json_decode($pRow['payload'], true) ?? [];
+            $memberTrainingDays = $pData['days'] ?? [];
+        }
+
+        // Fetch all classes created by trainers
+        $stmtAllClasses = $pdo->query("SELECT * FROM gym_records WHERE record_type = 'class' ORDER BY created_at DESC");
+        while ($cRow = $stmtAllClasses->fetch(PDO::FETCH_ASSOC)) {
+            $cPayload = json_decode($cRow['payload'], true) ?? [];
+            $isBooked = in_array($cRow['title'], $bookedClassTitles);
+            $clsList[] = [
+                'n' => $cRow['title'],
+                'w' => !empty($cRow['start_time']) ? date('D g:i A', strtotime($cRow['start_time'])) : 'Scheduled',
+                'raw_time' => $cRow['start_time'],
+                'trainer' => $cPayload['trainer_name'] ?? $coachNameForBooking,
+                'cap' => $cPayload['capacity'] ?? 15,
+                'me' => $isBooked ? 1 : 0
+            ];
+        }
+
+    } catch (\PDOException $ex) {
+        $dbError = $ex->getMessage();
+    }
+}
+
+// Fallbacks if empty
+if (empty($memList)) {
+    $memList = [['ic'=>'fa-dumbbell','c'=>'bg-amber-100 text-amber-700','n'=>'Gym Membership','s'=>'Pending Approval','a'=>150000,'d'=>date('d M Y'),'l'=>22,'t'=>30]];
+}
+if (empty($clsList)) {
+    $clsList = [['n'=>'Strength Circuit','w'=>'Mon 6:00 PM','raw_time'=>'2026-10-19 18:00:00','trainer'=>$coach['name'],'cap'=>12,'me'=>0]];
+}
+if (empty($chatList)) {
+    $chatList = [['me'=>0,'x'=>'Welcome to Pure Gain! Please submit your membership subscription payment to unlock full portal access.','t'=>'09:12']];
+}
+$histList = [['Today','Checked in at the gym'],['Yesterday','PT session with ' . $coach['name']]];
+$rewardList = [['Free protein shake',200],['Gym towel',300],['30 min PT session',800]];
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>ApexFit - Member Portal</title>
-<link href="../src/output.css" rel="stylesheet">
-
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Member Portal — <?= htmlspecialchars($me['name']) ?></title>
+<script src="https://cdn.tailwindcss.com"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com" rel="preconnect"/>
-<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
-<script>
-  tailwind.config = { theme: { extend: { fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] } } } }
-</script>
 <style>
-  /* Change --accent to #e53935 for the red look from the reference */
-  :root { --accent: #2563eb; --accent-dark: #1d4ed8; }
-  body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-font-smoothing: antialiased; }
-  .no-scrollbar::-webkit-scrollbar { display: none; }
-  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-  /* ---------- Shell + menu ---------- */
-  .shell { display: flex; flex-direction: column; }
-  @media (min-width: 1024px) { .shell { flex-direction: row; } }
-  .pnav { position: relative; display: flex; align-items: center; flex-shrink: 0; text-align: left; background: #f1f1f1;
-    font-size: 12.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #4b5563;
-    border-right: 1px solid #e2e2e2; white-space: nowrap; transition: background .25s, color .25s; }
-  .pnav .ic { width: 46px; height: 50px; display: flex; align-items: center; justify-content: center; font-size: 18px; color: #374151; transition: background .3s, color .3s; }
-  .pnav .lbl { padding: 0 14px 0 2px; }
-  .pnav:hover { background: #e8e8e8; }
-  .pnav.active { background: #fff; color: #111; }
-  .pnav.active .ic { background: var(--accent); color: #fff; }
-  .pnav.active .ic i { animation: pop .5s cubic-bezier(.2,1.6,.4,1); }
-  .pnav.out { color: #dc2626; } .pnav.out .ic { color: #dc2626; }
-  .badge { display: none; margin-left: auto; margin-right: 12px; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px;
-    background: #dc2626; color: #fff; font-size: 11px; align-items: center; justify-content: center; letter-spacing: 0; }
-  @media (min-width: 1024px) {
-    .pnav { width: 100%; border-right: 0; border-bottom: 1px solid #e2e2e2; }
-    .pnav .ic { width: 52px; height: 52px; font-size: 20px; }
-    .pnav .lbl { padding-left: 4px; }
-    .pnav.active::after { content: ''; position: absolute; right: 0; top: 50%; margin-top: -9px; border: 9px solid transparent; border-right-color: #fff; animation: notch .35s ease both; }
+  :root { --accent:#2563eb; }
+  body { font-family:'Plus Jakarta Sans',sans-serif; -webkit-font-smoothing:antialiased; }
+  .nav a { white-space:nowrap; display:flex; align-items:center; gap:12px; padding:14px 18px; font-size:13px; font-weight:700; color:#4b5563; border-bottom:1px solid #e2e2e2; }
+  .nav a:hover { background:#e8e8e8; } .nav a.on { background:#fff; color:#111; box-shadow:inset 3px 0 0 var(--accent); }
+  .card { background:#fff; border:1px solid #eef0f3; border-radius:20px; padding:20px; }
+  .inp { width:100%; background:#f8fafc; border:1px solid #cbd5e1; border-radius:12px; padding:9px 12px; font-size:14px; }
+  .inp:focus { outline:2px solid var(--accent); outline-offset:-1px; background:#fff; }
+  .chip { font-size:11px; font-weight:700; border-radius:999px; padding:3px 10px; }
+  .btn { font-size:13px; font-weight:700; border-radius:12px; padding:9px 14px; transition:background .2s; cursor:pointer; }
+  .btn-p { background:var(--accent); color:#fff; } .btn-p:hover { background:#1d4ed8; }
+  .btn-s { background:#f1f5f9; color:#334155; } .btn-s:hover { background:#e2e8f0; }
+  
+  /* Loading screen overlay */
+  #whatsapp-loader {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.85);
+    z-index: 9999;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
   }
-
-  /* ---------- Panel pieces ---------- */
-  .ptitle { font-size: 24px; font-weight: 800; letter-spacing: -.01em; color: #1e4fa3; margin-top: 4px; }
-  .card { background: #fff; border: 1px solid #eef0f3; border-radius: 22px; padding: 20px; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
-  .stat { background: #f8fafc; border: 1px solid #eef0f3; border-radius: 18px; padding: 14px 16px; transition: transform .25s, box-shadow .25s; }
-  .stat:hover { transform: translateY(-3px); box-shadow: 0 12px 24px -12px rgba(0,0,0,.18); }
-  .stat p { font-size: 11px; color: #64748b; font-weight: 600; }
-  .stat b { display: block; font-size: 26px; font-weight: 800; color: #0f172a; margin-top: 2px; }
-  .lab { display: block; font-size: 12px; font-weight: 600; color: #334155; }
-  .inp { margin-top: 6px; width: 100%; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 12px; padding: 10px 14px; font-size: 14px; }
-  .inp:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); background: #fff; }
-  .chip { font-size: 11px; font-weight: 700; color: #0369a1; background: #e0f2fe; border-radius: 999px; padding: 4px 10px; }
-  .av { display: flex; justify-content: space-between; gap: 10px; background: #f8fafc; border-radius: 12px; padding: 10px 14px; }
-  .av span { color: #64748b; }
-
-  /* Membership rows (reference style) */
-  .mrow { display: flex; gap: 14px; align-items: center; border: 1px solid #d9d9d9; border-radius: 14px; background: linear-gradient(#fff, #f3f3f3); padding: 10px; transition: transform .25s, box-shadow .25s; }
-  .mrow:hover { transform: translateY(-3px); box-shadow: 0 14px 26px -12px rgba(0,0,0,.25); }
-  .mlogo { width: 64px; height: 64px; flex-shrink: 0; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
-  .mcols { flex: 1; min-width: 0; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 14px; padding-left: 14px; border-left: 1px solid #e1e1e1; }
-  @media (min-width: 768px) { .mcols { grid-template-columns: repeat(5, 1fr); } }
-  .mcols .k { display: block; font-size: 11px; font-weight: 700; color: #374151; }
-  .mcols .v { display: block; font-size: 12px; color: #6b7280; margin-top: 2px; }
-  .dbar { height: 5px; background: #e5e7eb; border-radius: 99px; overflow: hidden; margin-top: 6px; }
-  .dbar i { display: block; height: 100%; border-radius: 99px; transition: width 1.1s cubic-bezier(.2,.8,.2,1); }
-  .bar { transition: width 1.1s cubic-bezier(.2,.8,.2,1); }
-  .bar-h { transition: height 1s cubic-bezier(.2,.8,.2,1); }
-  .renew { font-size: 11px; font-weight: 700; color: var(--accent); margin-top: 4px; }
-  .renew:hover { text-decoration: underline; }
-
-  /* QR */
-  .qr { position: relative; width: 120px; height: 120px; border: 2px dashed #cbd5e1; border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 72px; color: #0f172a; overflow: hidden; }
-  .qr .scan { position: absolute; left: 0; right: 0; height: 3px; background: var(--accent); box-shadow: 0 0 12px var(--accent); animation: scan 2.4s ease-in-out infinite; }
-
-  /* Trainer */
-  .trainer-hero, .points-hero { color: #fff; border-radius: 26px; padding: 26px; background: linear-gradient(135deg, #1d4ed8, #0f172a); box-shadow: 0 20px 40px -18px rgba(29,78,216,.6); position: relative; overflow: hidden; }
-  .trainer-hero::before, .points-hero::before { content: ''; position: absolute; width: 260px; height: 260px; right: -70px; top: -90px; border-radius: 50%; background: rgba(255,255,255,.07); animation: float 7s ease-in-out infinite; }
-  .avatar { width: 96px; height: 96px; border-radius: 50%; background: linear-gradient(135deg, #38bdf8, #2563eb); border: 3px solid rgba(255,255,255,.7); font-size: 32px; font-weight: 800; display: flex; align-items: center; justify-content: center; animation: ring 2.2s infinite; overflow: hidden; }
-  .hbtn { display: inline-flex; align-items: center; padding: 10px 20px; border-radius: 999px; font-size: 14px; font-weight: 600; transition: transform .2s, background .2s; }
-  .hbtn:hover { transform: translateY(-2px); }
-  .chatbox { height: 250px; overflow-y: auto; background: #f8fafc; border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 8px; scroll-behavior: smooth; }
-  .bub { max-width: 80%; padding: 9px 14px; border-radius: 18px; font-size: 14px; line-height: 1.4; }
-  .bub span { display: block; font-size: 10px; opacity: .6; margin-top: 3px; }
-  .bub.me { align-self: flex-end; background: var(--accent); color: #fff; border-bottom-right-radius: 5px; }
-  .bub.them { align-self: flex-start; background: #fff; border: 1px solid #e2e8f0; border-bottom-left-radius: 5px; color: #0f172a; }
-  .bub.typing { display: flex; gap: 4px; padding: 13px 16px; }
-  .bub.typing i { width: 7px; height: 7px; border-radius: 50%; background: #94a3b8; animation: bounce 1s infinite; }
-  .bub.typing i:nth-child(2) { animation-delay: .15s; } .bub.typing i:nth-child(3) { animation-delay: .3s; }
-
-  /* History + tabs */
-  .htab { padding: 8px 18px; border-radius: 999px; font-size: 13px; font-weight: 600; color: #475569; background: #f1f5f9; transition: all .25s; }
-  .htab:hover { background: #e2e8f0; }
-  .htab.on { background: var(--accent); color: #fff; box-shadow: 0 6px 14px -6px var(--accent); }
-  .hrow { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 16px; margin-bottom: 8px; background: #fff; border: 1px solid #eef0f3; border-radius: 16px; font-size: 14px; transition: transform .2s, box-shadow .2s; }
-  .hrow:hover { transform: translateX(4px); box-shadow: 0 8px 18px -10px rgba(0,0,0,.2); }
-
-  .pulse { animation: pulse 1.6s infinite; }
-
-  /* ---------- Animations ---------- */
-  .rise { animation: rise .5s cubic-bezier(.2,.8,.2,1) both; }
-  .view.enter .st { animation: rise .6s cubic-bezier(.2,.8,.2,1) both; animation-delay: calc(var(--i, 0) * 70ms); }
-  .view.enter .ptitle { animation-name: slide; }
-  @keyframes rise { from { opacity: 0; transform: translateY(20px) scale(.98); } to { opacity: 1; transform: none; } }
-  @keyframes slide { from { opacity: 0; transform: translateX(-24px); } to { opacity: 1; transform: none; } }
-  @keyframes pop { 0% { transform: scale(.4) rotate(-20deg); } 100% { transform: scale(1) rotate(0); } }
-  @keyframes notch { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: none; } }
-  @keyframes scan { 0%, 100% { top: 6%; } 50% { top: 92%; } }
-  @keyframes ring { 0% { box-shadow: 0 0 0 0 rgba(255,255,255,.5); } 100% { box-shadow: 0 0 0 20px rgba(255,255,255,0); } }
-  @keyframes float { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-18px, 14px); } }
-  @keyframes bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-5px); } }
-  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(37,99,235,.5); } 100% { box-shadow: 0 0 0 9px rgba(37,99,235,0); } }
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+  .spinner {
+    width: 60px;
+    height: 60px;
+    border: 5px solid rgba(255, 255, 255, 0.2);
+    border-top-color: #22c55e;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
   }
 </style>
 </head>
-<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
+<body class="bg-slate-50 text-slate-800 min-h-screen">
 
-<!-- BEGIN: MainHeader -->
-<header class="w-full border-b border-slate-200 bg-white sticky top-0 z-50 shadow-xs" data-purpose="site-header">
-<div class="max-w-[1100px] mx-auto px-4 h-16 flex items-center justify-between">
-<div class="flex items-center gap-3">
-  <button id="menuToggleBtn" aria-label="Toggle Menu" class="md:hidden p-1.5 text-slate-700 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition-colors" type="button">
-    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-    </svg>
-  </button>
-  <a class="flex items-center gap-2 select-none" href="index.php">
-      <img src="assets/images/logos.png" alt="Logo Icon" style="width: 150px; height: auto; object-fit: contain;">
-  </a>
+<!-- Custom Loading Screen Overlay -->
+<div id="whatsapp-loader">
+  <div class="spinner mb-4"></div>
+  <h2 class="text-lg font-bold">Logging Payment & Connecting to WhatsApp...</h2>
+  <p class="text-xs text-slate-300 mt-1">Redirecting you securely to admin at 0761448094</p>
 </div>
 
-<nav class="hidden md:flex items-center space-x-4 text-[14px] font-medium text-slate-700" data-purpose="main-navigation">
-    <a class="flex items-center gap-1.5 whitespace-nowrap hover:text-blue-600 transition-colors" href="index.php">
-        <svg class="w-4 h-4 text-slate-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
-        Home
-    </a>
-    <a class="flex items-center gap-1.5 whitespace-nowrap hover:text-blue-600 transition-colors" href="supplements.html">
-        <svg class="w-4 h-4 text-slate-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
-        Supplements
-    </a>
-    <a class="flex items-center gap-1.5 whitespace-nowrap hover:text-blue-600 transition-colors" href="gym-training.html">
-        <svg class="w-4 h-4 text-slate-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"></path></svg>
-        Gym Training
-    </a>
-    <a class="flex items-center gap-1.5 whitespace-nowrap hover:text-blue-600 transition-colors" href="calculator.html">
-        <svg class="w-4 h-4 text-slate-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-        Calculator
-    </a>
-    <a class="flex items-center gap-1.5 whitespace-nowrap hover:text-blue-600 transition-colors" href="about.html">
-        <svg class="w-4 h-4 text-slate-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-        About
-    </a>
-    <a class="flex items-center gap-1.5 whitespace-nowrap hover:text-blue-600 transition-colors" href="contact.html">
-        <svg class="w-4 h-4 text-slate-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-        Contact
-    </a>
-    <a class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-slate-300 text-[13px] font-medium text-slate-800 hover:border-blue-400 hover:bg-slate-50 transition-all shadow-sm whitespace-nowrap shrink-0" href="portal.html">
-        <svg class="w-4 h-4 text-slate-600 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-        Member Portal
-    </a>
-</nav>
-
-<div class="flex items-center space-x-3 sm:space-x-4 text-slate-700" data-purpose="user-utilities">
-<button id="searchToggleBtn" aria-label="Search" class="p-1.5 hover:text-blue-600 hover:bg-slate-100 rounded-full transition-colors" type="button">
-<svg class="w-5 h-5 stroke-[2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-<path d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" stroke-linecap="round" stroke-linejoin="round"></path>
-</svg>
-</button>
-
-<a aria-label="Wishlist" class="relative p-1.5 hover:text-blue-600 hover:bg-slate-100 rounded-full transition-colors" href="#">
-<svg class="w-5 h-5 stroke-[2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-<path d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" stroke-linecap="round" stroke-linejoin="round"></path>
-</svg>
-<span class="absolute top-0.5 right-0.5 bg-red-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">2</span>
-</a>
-
-<a aria-label="Cart" class="relative p-1.5 hover:text-blue-600 hover:bg-slate-100 rounded-full transition-colors" href="#">
-<svg class="w-5 h-5 stroke-[2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-<path d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" stroke-linecap="round" stroke-linejoin="round"></path>
-</svg>
-<span class="absolute top-0.5 right-0.5 bg-red-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">3</span>
-</a>
-
-<a class="hidden sm:flex items-center space-x-1.5 text-[14px] font-medium hover:text-blue-600 transition-colors pl-1" href="#">
-<svg class="w-5 h-5 stroke-[2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-<path d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" stroke-linecap="round" stroke-linejoin="round"></path>
-</svg>
-<span>Account</span>
-</a>
-</div>
+<!-- Debug Banner -->
+<div class="bg-slate-900 text-slate-200 text-xs py-1.5 px-4 text-center">
+  DB Status: Connected | User ID: <b><?= $selectedUserId ?></b> | Subscription Status: <b><?= $isSubscriptionApproved ? 'Approved' : 'Pending Verification' ?></b>
 </div>
 
-<div id="floatingSearch" class="hidden absolute top-full left-0 w-full bg-white border-b border-slate-200 shadow-md p-3 px-4 transition-all z-40">
-  <form action="#" method="GET" class="max-w-[700px] mx-auto flex items-center gap-2">
-    <div class="relative flex-grow">
-      <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
-      </span>
-      <input type="text" placeholder="Search supplements, workouts, plans..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600">
+<header class="sticky top-0 z-30 bg-white border-b border-slate-200">
+  <div class="max-w-[1100px] mx-auto px-4 h-16 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <?php 
+        $hasMemberPic = !empty($me['profile_pic']) && file_exists(__DIR__ . '/../' . $me['profile_pic']);
+      ?>
+      <?php if ($hasMemberPic): ?>
+        <img src="../<?= htmlspecialchars($me['profile_pic']) ?>" alt="Profile" class="w-10 h-10 rounded-full object-cover border border-slate-200" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"/>
+        <span class="w-10 h-10 rounded-full bg-blue-600 text-white font-extrabold items-center justify-center" style="display:none;" id="av"></span>
+      <?php else: ?>
+        <span class="w-10 h-10 rounded-full bg-blue-600 text-white font-extrabold flex items-center justify-center" id="av"></span>
+      <?php endif; ?>
+      <div class="leading-tight"><p class="font-bold text-slate-900 text-sm" id="hn"></p><p class="text-xs text-slate-500">ID: <?= htmlspecialchars($me['id']) ?></p></div>
     </div>
-    <button type="submit" class="px-4 py-2 bg-blue-600 text-white font-medium text-sm rounded-lg hover:bg-blue-700 transition-colors shrink-0">
-      Search
-    </button>
-  </form>
-</div>
+    <div class="text-xs text-slate-500 flex items-center gap-3">
+      <span>Switch User ID: <a href="?user_id=10" class="underline text-blue-600 font-bold ml-1">Trainer (10)</a> | <a href="?user_id=11" class="underline text-blue-600 font-bold ml-1">Member (11)</a></span>
+      <a href="trainer-dashboard.php?trainer=10&member_id=<?= $selectedUserId ?>" class="bg-sky-50 text-sky-700 px-3 py-1.5 rounded-lg border border-sky-200 font-bold">Trainer View</a>
+    </div>
+  </div>
 </header>
-<!-- END: MainHeader -->
 
-<div id="mobileDrawerBackdrop" class="fixed inset-0 bg-black/50 z-50 hidden transition-opacity"></div>
-<div id="mobileDrawer" class="fixed top-0 left-0 w-[280px] h-full bg-white shadow-2xl z-50 transform -translate-x-full transition-transform duration-300 flex flex-col">
-  <div class="p-4 border-b border-slate-200 flex items-center justify-between">
-    <span class="font-bold text-slate-900 text-lg">Menu</span>
-    <button id="closeDrawerBtn" aria-label="Close Menu" class="p-1.5 text-slate-500 hover:text-slate-800 rounded-lg">
-      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-    </button>
-  </div>
-  <div class="flex-grow overflow-y-auto py-4 px-4 space-y-2 text-slate-700 font-medium">
-    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-100 hover:text-blue-600 transition-colors" href="index.php">
-        <svg class="w-5 h-5 text-slate-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
-        Home
-    </a>
-    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-100 hover:text-blue-600 transition-colors" href="supplements.html">
-        <svg class="w-5 h-5 text-slate-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
-        Supplements
-    </a>
-    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-100 hover:text-blue-600 transition-colors" href="gym-training.html">
-        <svg class="w-5 h-5 text-slate-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"></path></svg>
-        Gym Training
-    </a>
-    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-100 hover:text-blue-600 transition-colors" href="calculator.html">
-        <svg class="w-5 h-5 text-slate-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-        Calculator
-    </a>
-    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-100 hover:text-blue-600 transition-colors" href="about.html">
-        <svg class="w-5 h-5 text-slate-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-        About
-    </a>
-    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-100 hover:text-blue-600 transition-colors" href="contact.html">
-        <svg class="w-5 h-5 text-slate-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-        Contact
-    </a>
-  </div>
-  <div class="p-4 border-t border-slate-200">
-    <a class="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl bg-blue-600 text-white font-medium text-sm shadow-sm hover:bg-blue-700 transition-colors" href="portal.html">
-        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-        Member Portal
-    </a>
-  </div>
-</div>
-
-<main class="flex-grow py-6 px-4 sm:px-6">
-<div class="max-w-[1100px] mx-auto">
-<div class="shell bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-
-  <!-- Menu -->
-  <aside class="menu lg:w-[240px] shrink-0 bg-[#f1f1f1]">
-    <div class="hidden lg:flex items-center gap-3 px-4 py-5 border-b border-[#e2e2e2] bg-white">
-      <span class="w-11 h-11 rounded-full text-white font-extrabold flex items-center justify-center" style="background:var(--accent)">GN</span>
-      <div class="min-w-0"><p class="font-bold text-slate-900 leading-tight truncate">Grace Nakato</p><p class="text-xs text-slate-500">ID: APX-0231</p></div>
-    </div>
-    <nav id="pnav" class="flex lg:flex-col overflow-x-auto lg:overflow-visible no-scrollbar">
-      <button data-view="dashboard" class="pnav" type="button"><span class="ic"><i class="fa-solid fa-gauge-high"></i></span><span class="lbl">Dashboard</span></button>
-      <button data-view="trainer" class="pnav" type="button"><span class="ic"><i class="fa-solid fa-user-tie"></i></span><span class="lbl">My Trainer</span></button>
-      <button data-view="classes" class="pnav" type="button"><span class="ic"><i class="fa-regular fa-calendar-check"></i></span><span class="lbl">Book Classes</span></button>
-      <button data-view="plan" class="pnav" type="button"><span class="ic"><i class="fa-solid fa-dumbbell"></i></span><span class="lbl">My Plan</span></button>
-      <button data-view="history" class="pnav" type="button"><span class="ic"><i class="fa-solid fa-clock-rotate-left"></i></span><span class="lbl">History</span></button>
-      <button data-view="points" class="pnav" type="button"><span class="ic"><i class="fa-solid fa-coins"></i></span><span class="lbl">Redeem Points</span></button>
-      <button data-view="notifications" class="pnav" type="button"><span class="ic"><i class="fa-solid fa-bullhorn"></i></span><span class="lbl">Notifications</span><span id="nBadge" class="badge"></span></button>
-      <button data-view="account" class="pnav" type="button"><span class="ic"><i class="fa-regular fa-user"></i></span><span class="lbl">My Account</span></button>
-      <button id="logoutBtn" class="pnav out" type="button"><span class="ic"><i class="fa-solid fa-arrow-right-from-bracket"></i></span><span class="lbl">Log out</span></button>
+<div class="max-w-[1100px] mx-auto px-4 py-6 flex flex-col lg:flex-row gap-6">
+  <aside class="lg:w-56 shrink-0 bg-[#f1f1f1] rounded-2xl overflow-hidden self-start w-full">
+    <nav class="nav flex lg:flex-col overflow-x-auto" id="nav">
+      <a href="#" data-v="dash" class="on"><i class="fa-solid fa-gauge-high w-5"></i>Dashboard</a>
+      <a href="#" data-v="coach"><i class="fa-solid fa-user-tie w-5"></i>My trainer</a>
+      <a href="#" data-v="classes"><i class="fa-regular fa-calendar-check w-5"></i>Book classes</a>
+      <a href="#" data-v="plan"><i class="fa-solid fa-dumbbell w-5"></i>My training plan</a>
+      <a href="#" data-v="pay-fee"><i class="fa-brands fa-whatsapp w-5 text-emerald-600"></i>Pay Membership</a>
+      <a href="#" data-v="hist"><i class="fa-solid fa-clock-rotate-left w-5"></i>History</a>
+      <a href="#" data-v="pts"><i class="fa-solid fa-coins w-5"></i>Redeem points</a>
+      <a href="#" data-v="note"><i class="fa-solid fa-bullhorn w-5"></i>Notifications (<?= count($memberNotifications) ?>)</a>
+      <a href="#" data-v="acct"><i class="fa-regular fa-user w-5"></i>My account</a>
     </nav>
   </aside>
 
-  <!-- Panel -->
-  <div class="flex-1 min-w-0 p-5 sm:p-8 bg-white">
-
-  <!-- DASHBOARD -->
-  <section id="v-dashboard" class="view">
-    <p id="greet" class="st text-sm font-semibold text-slate-500"></p>
-    <h2 class="st ptitle">Active Memberships</h2>
-    <div class="st grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5">
-      <div class="stat"><p>Visits this month</p><b data-count="14">0</b></div>
-      <div class="stat"><p>Classes booked</p><b id="statBooked" data-count="0">0</b></div>
-      <div class="stat"><p>PT sessions left</p><b data-count="2">0</b></div>
-      <div class="stat"><p>Reward points</p><b class="ptsLive" data-count="1250">0</b></div>
-    </div>
-    <div id="memList" class="space-y-3 mt-5"></div>
-
-    <div class="grid grid-cols-1 md:grid-cols-5 gap-5 mt-6">
-      <div class="st md:col-span-3 card">
-        <div class="flex items-center justify-between"><h3 class="font-extrabold text-slate-900">Upcoming sessions</h3><button data-go="classes" class="text-sm font-semibold text-blue-600 hover:text-blue-700" type="button">Book more →</button></div>
-        <ul id="upcoming" class="mt-3 divide-y divide-slate-100"></ul>
+  <main class="flex-1 min-w-0 space-y-5">
+    
+    <!-- SUBSCRIPTION LOCK BANNER IF NOT APPROVED -->
+    <?php if (!$isSubscriptionApproved): ?>
+      <div class="bg-amber-50 border border-amber-200 text-amber-900 p-4 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm">
+        <div class="flex items-center gap-3">
+          <i class="fa-solid fa-triangle-exclamation text-amber-600 text-xl"></i>
+          <div>
+            <b class="block font-bold">Subscription Pending Approval</b>
+            <p class="text-xs text-amber-700 mt-0.5">Your payment attempt is recorded. Once an admin approves your subscription, full portal access will be granted.</p>
+          </div>
+        </div>
+        <button onclick="show('pay-fee')" class="btn bg-amber-600 text-white hover:bg-amber-700 text-xs shrink-0">Pay / Renew Now</button>
       </div>
-      <div class="st md:col-span-2 card text-center">
-        <h3 class="font-extrabold text-slate-900 text-left">Gym check-in</h3>
-        <div class="qr mx-auto mt-4"><i class="fa-solid fa-qrcode"></i><span class="scan"></span></div>
-        <p class="text-sm font-bold text-slate-900 mt-3">APX-0231</p>
-        <p class="text-xs text-slate-400">Show this at the front desk</p>
-      </div>
-    </div>
-  </section>
+    <?php endif; ?>
 
-  <!-- TRAINER -->
-  <section id="v-trainer" class="view hidden">
-    <h2 class="st ptitle">My Trainer</h2>
-    <div class="st trainer-hero mt-5">
-      <div class="flex flex-col sm:flex-row gap-5 sm:items-center">
-        <!-- Replace the initials with <img src="assets/images/trainer.jpg" class="w-full h-full object-cover rounded-full"> -->
-        <div class="avatar shrink-0">BS</div>
-        <div class="min-w-0">
-          <span class="inline-block text-[11px] font-extrabold bg-white/15 rounded-full px-3 py-1">ASSIGNED TRAINER</span>
-          <h3 class="text-2xl font-extrabold mt-2">Coach Brian Ssebunya</h3>
-          <p class="text-sm text-blue-100">Strength & Conditioning Coach</p>
-          <p class="mt-2 text-amber-300 text-sm"><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i> <span class="text-white font-semibold ml-1">4.9</span> <span class="text-blue-200">(86 reviews)</span></p>
+    <!-- DASHBOARD VIEW -->
+    <section data-view="dash" class="view-section space-y-5">
+      <h1 class="text-2xl font-extrabold text-[#1e4fa3]" id="greet"></h1>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4" id="stats"></div>
+      <h2 class="font-extrabold text-lg mt-6">Gym Subscriptions & Payment Records</h2>
+      <div id="mems" class="space-y-3 mt-3"></div>
+      
+      <div class="card mt-6">
+        <h3 class="font-extrabold text-base mb-3">Your Booked Sessions</h3>
+        <div class="divide-y divide-slate-100 text-sm">
+          <?php if (empty($upcomingSessions)): ?>
+            <p class="text-slate-400 py-2">No classes booked yet. Go to 'Book classes' to reserve a slot!</p>
+          <?php else: ?>
+            <?php foreach ($upcomingSessions as $us): ?>
+              <div class="py-3 flex justify-between items-center">
+                <div><b><?= htmlspecialchars($us['n']) ?></b><p class="text-xs text-slate-500"><?= htmlspecialchars($us['w']) ?></p></div>
+                <span class="chip bg-emerald-100 text-emerald-800">Confirmed</span>
+              </div>
+            <?php endforeach; ?>
+          <?php endif; ?>
         </div>
       </div>
-      <div class="flex flex-wrap gap-3 mt-6">
-        <button id="msgBtn" class="hbtn bg-white text-blue-700" type="button"><i class="fa-regular fa-message mr-2"></i>Message</button>
-        <a href="https://wa.me/256700000000" class="hbtn border border-white/40 text-white"><i class="fa-brands fa-whatsapp mr-2"></i>WhatsApp</a>
-        <a href="tel:+256700000000" class="hbtn border border-white/40 text-white"><i class="fa-solid fa-phone mr-2"></i>Call</a>
+    </section>
+
+    <!-- MY TRAINER & CHAT VIEW -->
+    <section data-view="coach" class="view-section hidden space-y-5">
+      <h1 class="text-2xl font-extrabold text-[#1e4fa3]">My trainer</h1>
+      <div class="rounded-3xl p-6 text-white bg-gradient-to-br from-blue-700 to-slate-900 flex items-center gap-5 flex-wrap">
+        <?php 
+          $hasCoachPic = !empty($coach['profile_pic']) && file_exists(__DIR__ . '/../' . $coach['profile_pic']);
+        ?>
+        <?php if ($hasCoachPic): ?>
+          <img src="../<?= htmlspecialchars($coach['profile_pic']) ?>" alt="Coach" class="w-20 h-20 rounded-full object-cover border-2 border-white/30 shadow-md" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"/>
+          <span class="w-20 h-20 rounded-full bg-white/20 text-2xl font-extrabold items-center justify-center border-2 border-white/30" style="display:none;" id="cav"></span>
+        <?php else: ?>
+          <span class="w-20 h-20 rounded-full bg-white/20 text-2xl font-extrabold flex items-center justify-center" id="cav"></span>
+        <?php endif; ?>
+        <div class="min-w-0"><span class="chip bg-white/20"><?= !empty($coach['assigned']) ? 'Assigned trainer' : 'Assignment status' ?></span><h2 class="text-2xl font-extrabold mt-1" id="cn"></h2><p class="text-blue-100 text-sm"><?= !empty($coach['assigned']) ? 'Your assigned strength and conditioning coach' : 'Pending Assignment — the gym administrator has not assigned a trainer yet.' ?></p></div>
       </div>
-    </div>
+      
+      <div class="card">
+        <h3 class="font-extrabold">Chat with <span id="cn2"></span></h3>
+        <div id="chat" class="bg-slate-50 rounded-xl p-3 mt-3 h-64 overflow-y-auto space-y-3 text-sm">
+          <?php if (empty($chatList)): ?>
+            <div class="text-center text-slate-400 py-10">No messages yet. Say hello to your trainer!</div>
+          <?php else: ?>
+            <?php foreach ($chatList as $m): ?>
+              <div class="flex <?= $m['me'] ? 'justify-end' : 'justify-start' ?>">
+                <div class="max-w-[80%] rounded-xl px-4 py-2.5 <?= $m['me'] ? 'bg-blue-600 text-white' : 'bg-white border border-slate-200 text-slate-800' ?>">
+                  <p><?= htmlspecialchars($m['x']) ?></p>
+                  <span class="text-[10px] opacity-60 block mt-1 text-right"><?= $m['t'] ?></span>
+                </div>
+              </div>
+            <?php endforeach; ?>
+          <?php endif; ?>
+        </div>
 
-    <div class="grid grid-cols-3 gap-3 mt-5">
-      <div class="st stat"><p>Experience</p><b><span data-count="6">0</span> yrs</b></div>
-      <div class="st stat"><p>Members trained</p><b><span data-count="120">0</span>+</b></div>
-      <div class="st stat"><p>With you since</p><b class="!text-lg" id="trSince"></b></div>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
-      <div class="st card">
-        <h3 class="font-extrabold text-slate-900">About your coach</h3>
-        <p class="text-sm text-slate-500 mt-2 leading-relaxed">Brian focuses on fat loss and strength building for busy professionals. He tracks your progress weekly and adjusts your plan as you improve.</p>
-        <div class="flex flex-wrap gap-2 mt-3"><span class="chip">ACE Certified</span><span class="chip">Nutrition Level 2</span><span class="chip">First Aid</span><span class="chip">Strength</span></div>
-        <div class="mt-4 rounded-2xl bg-sky-50 p-4 text-sm"><p class="text-xs font-bold text-sky-700">NEXT SESSION</p><p id="trNext" class="font-semibold text-slate-900 mt-1"></p></div>
-        <button id="changeTrainer" class="mt-4 text-xs font-semibold text-slate-400 hover:text-blue-600 transition-colors" type="button">Request a different trainer</button>
+        <?php if (!empty($coach['assigned'])): ?>
+        <form method="POST" class="flex gap-2 mt-3">
+          <input type="hidden" name="send_message" value="1">
+          <input name="message_body" id="cm" required class="inp flex-1" placeholder="Type a message to your trainer..."/>
+          <button type="submit" class="btn btn-p px-5">Send</button>
+        </form>
+        <?php else: ?>
+        <p class="mt-3 rounded-xl bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">Messaging will become available after the administrator assigns your trainer.</p>
+        <?php endif; ?>
       </div>
-      <div class="st card">
-        <h3 class="font-extrabold text-slate-900">Weekly availability</h3>
-        <ul class="mt-3 space-y-2 text-sm">
-          <li class="av"><b>Mon, Wed, Fri</b><span>6:00 AM to 12:00 PM</span></li>
-          <li class="av"><b>Tue, Thu</b><span>2:00 PM to 8:00 PM</span></li>
-          <li class="av"><b>Saturday</b><span>7:00 AM to 1:00 PM</span></li>
-        </ul>
+    </section>
+
+    <!-- BOOK CLASSES VIEW -->
+    <section data-view="classes" class="view-section card hidden space-y-4">
+      <h2 class="font-extrabold text-lg">Available Classes (Created by Trainers)</h2>
+      <?php if (!$isSubscriptionApproved): ?>
+        <div class="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-xs font-semibold">
+          <i class="fa-solid fa-lock mr-1"></i> Class booking is locked until your subscription payment is approved by administration.
+        </div>
+      <?php endif; ?>
+      <div class="divide-y divide-slate-100 text-sm mt-3">
+        <?php if (empty($clsList)): ?>
+          <p class="text-slate-400 py-4">No classes available for booking right now.</p>
+        <?php else: ?>
+          <?php foreach ($clsList as $cls): ?>
+            <div class="py-4 flex justify-between items-center flex-wrap gap-3">
+              <div>
+                <b class="text-base text-slate-900"><?= htmlspecialchars($cls['n']) ?></b>
+                <p class="text-xs text-slate-500 mt-0.5"><i class="fa-regular fa-clock mr-1"></i><?= htmlspecialchars($cls['w']) ?> • Trainer: <?= htmlspecialchars($cls['trainer']) ?> • Capacity: <?= $cls['cap'] ?></p>
+              </div>
+              <div>
+                <?php if ($isSubscriptionApproved): ?>
+                  <form method="POST">
+                    <input type="hidden" name="toggle_booking" value="1">
+                    <input type="hidden" name="class_title" value="<?= htmlspecialchars($cls['n']) ?>">
+                    <input type="hidden" name="class_time" value="<?= htmlspecialchars($cls['raw_time']) ?>">
+                    <input type="hidden" name="trainer_name" value="<?= htmlspecialchars($cls['trainer']) ?>">
+                    <input type="hidden" name="action" value="<?= $cls['me'] ? 'cancel' : 'book' ?>">
+                    <button type="submit" class="btn <?= $cls['me'] ? 'btn-s text-red-600' : 'btn-p' ?>">
+                      <?= $cls['me'] ? 'Cancel Booking' : 'Book Class' ?>
+                    </button>
+                  </form>
+                <?php else: ?>
+                  <button disabled class="btn bg-slate-200 text-slate-400 cursor-not-allowed">Locked</button>
+                <?php endif; ?>
+              </div>
+            </div>
+          <?php endforeach; ?>
+        <?php endif; ?>
       </div>
-    </div>
+    </section>
 
-    <div id="chatCard" class="st card mt-5">
-      <h3 class="font-extrabold text-slate-900">Chat with Coach Brian</h3>
-      <div id="chatBox" class="chatbox mt-3"></div>
-      <form id="chatForm" class="flex gap-2 mt-3">
-        <input id="chatInput" autocomplete="off" placeholder="Type a message..." class="flex-1 bg-slate-50 border border-slate-300 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600">
-        <button class="w-11 h-11 shrink-0 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors" type="submit" aria-label="Send"><i class="fa-solid fa-paper-plane"></i></button>
-      </form>
-    </div>
-  </section>
-
-  <!-- CLASSES -->
-  <section id="v-classes" class="view hidden">
-    <h2 class="st ptitle">Book Classes</h2>
-    <p class="st text-sm text-slate-500 mt-1">Pick a day and reserve your spot.</p>
-    <div id="days" class="st flex gap-2 overflow-x-auto no-scrollbar py-4"></div>
-    <div id="classList" class="space-y-3"></div>
-  </section>
-
-  <!-- PLAN -->
-  <section id="v-plan" class="view hidden">
-    <h2 class="st ptitle">My Plan</h2>
-    <p class="st text-sm text-slate-500 mt-1">Your weekly workout plan from Coach Brian.</p>
-    <div class="st card mt-5"><ul id="week" class="divide-y divide-slate-100 text-sm"></ul></div>
-    <div class="grid grid-cols-1 md:grid-cols-5 gap-5 mt-5">
-      <div class="st md:col-span-3 card">
-        <div class="flex items-center justify-between"><h3 class="font-extrabold text-slate-900">Weight progress</h3><span class="text-xs font-semibold text-green-600">-3.4 kg in 6 weeks</span></div>
-        <div id="weightChart" class="mt-5 flex items-end gap-3 h-44"></div>
+    <!-- MY TRAINING PLAN CALENDAR VIEW -->
+    <section data-view="plan" class="view-section card hidden space-y-5">
+      <div class="flex justify-between items-center">
+        <div>
+          <h2 class="font-extrabold text-xl text-slate-900">My Training Schedule</h2>
+          <p class="text-sm text-slate-500">View the training days assigned to you by your coach.</p>
+        </div>
+        <span class="chip bg-blue-100 text-blue-700"><?= count($memberTrainingDays) ?> Training Days Scheduled</span>
       </div>
-      <div class="st md:col-span-2 card">
-        <h3 class="font-extrabold text-slate-900">Personal bests</h3>
-        <div id="pbs" class="mt-4 space-y-3 text-sm"></div>
+
+      <!-- Month Navigation Bar -->
+      <div class="flex items-center justify-between bg-slate-100 p-3 rounded-xl mt-3">
+        <?php 
+          $prevMonth = $currentMonth - 1;
+          $prevYear = $currentYear;
+          if ($prevMonth < 1) { $prevMonth = 12; $prevYear--; }
+
+          $nextMonth = $currentMonth + 1;
+          $nextYear = $currentYear;
+          if ($nextMonth > 12) { $nextMonth = 1; $nextYear++; }
+        ?>
+        <a href="portal.php?user_id=<?= $selectedUserId ?>&month=<?= $prevMonth ?>&year=<?= $prevYear ?>" class="btn bg-white border border-slate-200 text-xs font-bold px-3 py-1.5 hover:bg-slate-50">
+          <i class="fa-solid fa-chevron-left mr-1"></i> Prev Month
+        </a>
+        <h3 class="font-extrabold text-base text-slate-800">
+          <?= date('F Y', mktime(0, 0, 0, $currentMonth, 1, $currentYear)) ?>
+        </h3>
+        <a href="portal.php?user_id=<?= $selectedUserId ?>&month=<?= $nextMonth ?>&year=<?= $nextYear ?>" class="btn bg-white border border-slate-200 text-xs font-bold px-3 py-1.5 hover:bg-slate-50">
+          Next Month <i class="fa-solid fa-chevron-right ml-1"></i>
+        </a>
       </div>
-    </div>
-  </section>
 
-  <!-- HISTORY -->
-  <section id="v-history" class="view hidden">
-    <h2 class="st ptitle">History</h2>
-    <div class="st flex gap-2 mt-4" id="hTabs">
-      <button data-t="pay" class="htab" type="button">Payments</button>
-      <button data-t="orders" class="htab" type="button">Orders</button>
-      <button data-t="visits" class="htab" type="button">Check-ins</button>
-    </div>
-    <div id="hBody" class="mt-4"></div>
-  </section>
+      <!-- Calendar Grid Displaying Ticked Days -->
+      <div class="grid grid-cols-7 gap-2 text-center mt-3">
+        <div class="text-xs font-extrabold text-slate-400 py-1">Mon</div>
+        <div class="text-xs font-extrabold text-slate-400 py-1">Tue</div>
+        <div class="text-xs font-extrabold text-slate-400 py-1">Wed</div>
+        <div class="text-xs font-extrabold text-slate-400 py-1">Thu</div>
+        <div class="text-xs font-extrabold text-slate-400 py-1">Fri</div>
+        <div class="text-xs font-extrabold text-slate-400 py-1">Sat</div>
+        <div class="text-xs font-extrabold text-slate-400 py-1">Sun</div>
 
-  <!-- POINTS -->
-  <section id="v-points" class="view hidden">
-    <h2 class="st ptitle">Redeem Points</h2>
-    <div class="st points-hero mt-5">
-      <p class="text-sm text-blue-100">Your balance</p>
-      <p class="text-4xl sm:text-5xl font-extrabold mt-1"><i class="fa-solid fa-coins text-amber-300 mr-2"></i><span id="pointsNum" class="ptsLive" data-count="1250">0</span> <span class="text-lg font-semibold text-blue-200">pts</span></p>
-      <div class="mt-5 h-2.5 bg-white/15 rounded-full overflow-hidden max-w-[420px]"><div id="pointsBar" class="bar h-full bg-amber-300 rounded-full" data-w="0%"></div></div>
-      <p id="pointsNext" class="text-xs text-blue-100 mt-2"></p>
-    </div>
-    <h3 class="st font-extrabold text-slate-900 mt-6">Rewards</h3>
-    <div id="rewardGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3"></div>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
-      <div class="st card"><h3 class="font-extrabold text-slate-900">How to earn</h3>
-        <ul class="mt-3 space-y-2.5 text-sm text-slate-600">
-          <li><i class="fa-solid fa-person-walking text-sky-500 w-6"></i>Gym visit <b class="float-right text-slate-900">+10</b></li>
-          <li><i class="fa-regular fa-calendar-check text-sky-500 w-6"></i>Attend a class <b class="float-right text-slate-900">+50</b></li>
-          <li><i class="fa-solid fa-bag-shopping text-sky-500 w-6"></i>Shop order <b class="float-right text-slate-900">+100</b></li>
-          <li><i class="fa-solid fa-user-group text-sky-500 w-6"></i>Refer a friend <b class="float-right text-slate-900">+300</b></li>
-        </ul></div>
-      <div class="st card"><h3 class="font-extrabold text-slate-900">Redeemed</h3><ul id="redeemedList" class="mt-3 space-y-2 text-sm text-slate-600"><li class="text-slate-400">Nothing redeemed yet.</li></ul></div>
-    </div>
-  </section>
+        <?php
+          $totalDaysInMonth = cal_days_in_month(CAL_GREGORIAN, $currentMonth, $currentYear);$firstDayOfWeek = date('N', strtotime("$currentYear-$currentMonth-01"));
+          
+          for ($i = 1; $i < $firstDayOfWeek; $i++) {
+              echo '<div class="h-20 bg-slate-50/50 rounded-xl border border-transparent"></div>';
+          }
 
-  <!-- NOTIFICATIONS -->
-  <section id="v-notifications" class="view hidden">
-    <div class="st flex items-end justify-between gap-4"><h2 class="ptitle">Notifications</h2><button id="markAll" class="text-sm font-semibold text-blue-600 hover:text-blue-700" type="button">Mark all as read</button></div>
-    <ul id="notifList" class="mt-5 space-y-3"></ul>
-  </section>
-
-  <!-- ACCOUNT -->
-  <section id="v-account" class="view hidden">
-    <h2 class="st ptitle">My Account</h2>
-    <form id="profileForm" class="st card mt-5 space-y-4">
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <label class="lab">Full name<input class="inp" value="Grace Nakato"></label>
-        <label class="lab">Phone<input class="inp" value="+256 772 000 000"></label>
-        <label class="lab">Email<input type="email" class="inp" value="grace@example.com"></label>
-        <label class="lab">Main goal<select class="inp"><option>Lose weight</option><option>Build muscle</option><option>Get stronger</option><option>Improve fitness</option></select></label>
-        <label class="lab">Emergency contact<input class="inp" value="Peter Nakato"></label>
-        <label class="lab">Emergency phone<input class="inp" value="+256 700 111 222"></label>
+          for ($day = 1; $day <=$totalDaysInMonth; $day++) {$dateStr = sprintf('%04d-%02d-%02d', $currentYear,$currentMonth, $day);$isTrainingDay = in_array($dateStr,$memberTrainingDays);
+              $isToday = ($dateStr === date('Y-m-d'));
+        ?>
+          <div class="h-24 p-2 rounded-xl border flex flex-col justify-between select-none <?= $isTrainingDay ? 'bg-blue-50 border-blue-400 shadow-sm' : 'bg-white border-slate-200 opacity-70' ?> <?= $isToday ? 'ring-2 ring-blue-500' : '' ?>">
+            <div class="flex justify-between items-center w-full">
+              <span class="text-xs font-extrabold <?= $isTrainingDay ? 'text-blue-700' : 'text-slate-700' ?>"><?= $day ?></span>
+              <?php if ($isTrainingDay): ?>
+                <i class="fa-solid fa-circle-check text-blue-600 text-xs"></i>
+              <?php endif; ?>
+            </div>
+            <div class="text-[10px] font-bold text-center <?= $isTrainingDay ? 'text-blue-700 bg-blue-100 rounded py-0.5' : 'text-slate-400' ?>">
+              <?= $isTrainingDay ? 'Training Day' : 'Rest' ?>
+            </div>
+          </div>
+        <?php } ?>
       </div>
-      <label class="lab">Health notes<textarea rows="2" class="inp">Mild knee strain, avoid heavy jumping.</textarea></label>
-      <button class="px-7 py-3 rounded-full bg-blue-600 text-white font-semibold text-[14px] hover:bg-blue-700 transition-colors" type="submit">Save Changes</button>
-    </form>
-    <div class="st card mt-5">
-      <h3 class="font-extrabold text-slate-900">Membership settings</h3>
-      <p class="text-sm text-slate-500 mt-1">Going away or need a break? You can pause or cancel anytime.</p>
-      <div class="flex flex-wrap gap-3 mt-4">
-        <button id="freezeBtn" class="px-6 py-2.5 rounded-full border border-slate-300 font-semibold text-[14px] hover:border-blue-400 hover:text-blue-600 transition-colors" type="button">Freeze Membership</button>
-        <button id="cancelBtn" class="px-6 py-2.5 rounded-full border border-red-200 text-red-600 font-semibold text-[14px] hover:bg-red-50 transition-colors" type="button">Cancel Membership</button>
-      </div>
-    </div>
-  </section>
+    </section>
 
-  </div>
+    <!-- PAY MEMBERSHIP FEE VIA WHATSAPP VIEW -->
+    <section data-view="pay-fee" class="view-section card hidden space-y-6">
+      <div>
+        <h2 class="font-extrabold text-xl text-slate-900">Pay Membership Fee via WhatsApp</h2>
+        <p class="text-sm text-slate-500 mt-1">Select your subscription plan. This will log your payment attempt in our database as <b>Pending</b> and route you to admin WhatsApp at <b class="text-slate-800">+256 761 448094</b>.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <!-- Monthly Plan Card -->
+        <div class="border border-slate-200 rounded-2xl p-5 bg-gradient-to-b from-white to-slate-50 flex flex-col justify-between space-y-4">
+          <div>
+            <span class="chip bg-blue-100 text-blue-700">Monthly Plan</span>
+            <h3 class="text-2xl font-extrabold text-slate-900 mt-2">UGX 150,000 <span class="text-xs font-normal text-slate-500">/ month</span></h3>
+            <p class="text-sm text-slate-600 mt-2">Full access to gym equipment, locker rooms, and standard group training classes.</p>
+          </div>
+          <button onclick="payViaWhatsApp('Monthly Gym Membership', 150000)" class="w-full btn bg-emerald-600 text-white hover:bg-emerald-700 flex items-center justify-center gap-2 py-3">
+            <i class="fa-brands fa-whatsapp text-lg"></i> Pay Monthly via WhatsApp
+          </button>
+        </div>
+
+        <!-- Annual Plan Card -->
+        <div class="border-2 border-blue-500 rounded-2xl p-5 bg-gradient-to-b from-blue-50/50 to-white flex flex-col justify-between space-y-4 shadow-sm">
+          <div>
+            <div class="flex justify-between items-center">
+              <span class="chip bg-blue-600 text-white">Annual Plan</span>
+              <span class="text-[10px] font-extrabold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">Save 20%</span>
+            </div>
+            <h3 class="text-2xl font-extrabold text-slate-900 mt-2">UGX 1,440,000 <span class="text-xs font-normal text-slate-500">/ year</span></h3>
+            <p class="text-sm text-slate-600 mt-2">Unlimited annual access, free PT assessment, VIP priority booking, and custom nutrition guidance.</p>
+          </div>
+          <button onclick="payViaWhatsApp('Annual Gym Membership', 1440000)" class="w-full btn bg-emerald-600 text-white hover:bg-emerald-700 flex items-center justify-center gap-2 py-3">
+            <i class="fa-brands fa-whatsapp text-lg"></i> Pay Annual via WhatsApp
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- NOTIFICATIONS VIEW -->
+    <section data-view="note" class="view-section card hidden space-y-4">
+      <div class="flex justify-between items-center">
+        <h2 class="font-extrabold text-xl text-slate-900">Notifications & Announcements</h2>
+        <span class="chip bg-blue-100 text-blue-700"><?= count($memberNotifications) ?> Total</span>
+      </div>
+      <p class="text-sm text-slate-500">Read announcements and direct alerts sent to you by your trainers.</p>
+      
+      <div class="divide-y divide-slate-100 mt-2">
+        <?php if (empty($memberNotifications)): ?>
+          <div class="py-8 text-center text-slate-400 text-sm">
+            <i class="fa-regular fa-bell-slash text-2xl mb-2 block"></i>
+            No notifications found right now.
+          </div>
+        <?php else: ?>
+          <?php foreach ($memberNotifications as $notif): ?>
+            <div class="py-4 space-y-1">
+              <div class="flex justify-between items-center">
+                <h3 class="font-bold text-slate-900 text-base"><?= htmlspecialchars($notif['title']) ?></h3>
+                <span class="text-xs text-slate-400"><?= htmlspecialchars($notif['time']) ?></span>
+              </div>
+              <p class="text-sm text-slate-600"><?= htmlspecialchars($notif['body']) ?></p>
+            </div>
+          <?php endforeach; ?>
+        <?php endif; ?>
+      </div>
+    </section>
+
+    <!-- OTHER VIEWS -->
+    <section data-view="hist" class="view-section card hidden"><h2 class="font-extrabold text-lg">History</h2><ul id="hist" class="mt-3 divide-y divide-slate-100 text-sm"></ul></section>
+    <section data-view="pts" class="view-section card hidden"><div class="flex justify-between items-end"><h2 class="font-extrabold text-lg">Redeem points</h2><p class="text-sm">Balance <b class="text-2xl text-blue-600" id="bal"></b></p></div></section>
+    <section data-view="acct" class="view-section card hidden"><h2 class="font-extrabold text-lg">My account</h2><div class="mt-3 space-y-3 max-w-md"><label class="block text-sm font-bold">Full name</label><input id="an" class="inp" value="<?= htmlspecialchars($me['name']) ?>"/></div></section>
+  </main>
 </div>
-</div>
-</main>
-
-<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] bg-slate-900 text-white text-sm font-medium px-5 py-3 rounded-full shadow-lg opacity-0 pointer-events-none transition-opacity duration-300"></div>
 
 <script>
-const searchToggleBtn = document.getElementById('searchToggleBtn');
-  const floatingSearch = document.getElementById('floatingSearch');
-  searchToggleBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    floatingSearch.classList.toggle('hidden');
-    if (!floatingSearch.classList.contains('hidden')) floatingSearch.querySelector('input').focus();
-  });
-  window.addEventListener('click', (e) => {
-    if (!floatingSearch.contains(e.target) && e.target !== searchToggleBtn && !searchToggleBtn.contains(e.target)) floatingSearch.classList.add('hidden');
-  });
-  const menuToggleBtn = document.getElementById('menuToggleBtn');
-  const mobileDrawer = document.getElementById('mobileDrawer');
-  const mobileDrawerBackdrop = document.getElementById('mobileDrawerBackdrop');
-  const closeDrawerBtn = document.getElementById('closeDrawerBtn');
-  function openDrawer() { mobileDrawer.classList.remove('-translate-x-full'); mobileDrawerBackdrop.classList.remove('hidden'); document.body.style.overflow = 'hidden'; }
-  function closeDrawer() { mobileDrawer.classList.add('-translate-x-full'); mobileDrawerBackdrop.classList.add('hidden'); document.body.style.overflow = ''; }
-  menuToggleBtn.addEventListener('click', openDrawer);
-  closeDrawerBtn.addEventListener('click', closeDrawer);
-  mobileDrawerBackdrop.addEventListener('click', closeDrawer);
+const $ = id => document.getElementById(id);
+const ini = n => (n || 'User').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
 
+const C = <?= json_encode($coach, JSON_HEX_TAG | JSON_HEX_AMP) ?>;
+const ME = <?= json_encode($me, JSON_HEX_TAG | JSON_HEX_AMP) ?>;
+let pts = <?= (int)$pointsBalance ?>, name = ME.name;
+const MEM = <?= json_encode($memList, JSON_HEX_TAG | JSON_HEX_AMP) ?>;
 
-  // ================= Helpers =================
-  const $ = id => document.getElementById(id);
-  const fmtUGX = n => 'UGX ' + n.toLocaleString('en-US');
-  const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
-  const iso = d => d.toISOString().split('T')[0];
-  const nice = d => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-  const short = d => d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let toastT;
-  function toast(msg) { const t = $('toast'); t.textContent = msg; t.style.opacity = 1; clearTimeout(toastT); toastT = setTimeout(() => t.style.opacity = 0, 2600); }
+if($('av'))$('av').textContent = ini(name);
+if($('hn'))$('hn').textContent = name;
+if($('cav'))$('cav').textContent = ini(C.name);
+if($('cn'))$('cn').textContent = C.name;
+if($('cn2'))$('cn2').textContent = C.name;
+if($('greet'))$('greet').textContent = 'Welcome back, ' + name.split(' ')[0];
 
-  function countUp(el, to, from = 0, dur = 1000) {
-    if (reduce || from === to) { el.textContent = to.toLocaleString('en-US'); return; }
-    const t0 = performance.now();
-    (function f(t) {
-      const p = Math.min((t - t0) / dur, 1), e = 1 - Math.pow(1 - p, 3);
-      el.textContent = Math.round(from + (to - from) * e).toLocaleString('en-US');
-      if (p < 1) requestAnimationFrame(f);
-    })(t0);
-  }
-  function burst(x, y) {
-    if (reduce) return;
-    const colors = ['#2563eb', '#38bdf8', '#fbbf24', '#34d399', '#f472b6'];
-    for (let i = 0; i < 26; i++) {
-      const s = document.createElement('span');
-      s.style.cssText = 'position:fixed;z-index:70;pointer-events:none;width:8px;height:8px;border-radius:2px;left:' + x + 'px;top:' + y + 'px;background:' + colors[i % 5];
-      document.body.appendChild(s);
-      const a = Math.random() * Math.PI * 2, d = 60 + Math.random() * 110;
-      s.animate([{ transform: 'translate(0,0) rotate(0) scale(1)', opacity: 1 }, { transform: 'translate(' + Math.cos(a) * d + 'px,' + (Math.sin(a) * d + 60) + 'px) rotate(' + Math.random() * 720 + 'deg) scale(.4)', opacity: 0 }], { duration: 900 + Math.random() * 400, easing: 'cubic-bezier(.2,.7,.3,1)' }).onfinish = () => s.remove();
-    }
-  }
-  const rise = (el, i) => { el.classList.add('rise'); el.style.animationDelay = (i * 60) + 'ms'; };
+if($('stats')) {$('stats').innerHTML = `<div class="bg-white border border-slate-200 rounded-2xl p-4"><p class="text-xs font-semibold text-slate-500">Visits</p><b class="block text-2xl font-extrabold mt-1">14</b></div>` +
+                         `<div class="bg-white border border-slate-200 rounded-2xl p-4"><p class="text-xs font-semibold text-slate-500">PT Sessions</p><b class="block text-2xl font-extrabold mt-1">2</b></div>`;
+}
 
-  // ================= Screens =================
-  function enter(sec) {
-    sec.classList.remove('enter'); void sec.offsetWidth;
-    sec.querySelectorAll('.st').forEach((el, i) => el.style.setProperty('--i', i));
-    sec.classList.add('enter');
-    sec.querySelectorAll('[data-count]').forEach(el => countUp(el, +el.dataset.count));
-    sec.querySelectorAll('[data-w]').forEach(el => { el.style.width = '0'; requestAnimationFrame(() => requestAnimationFrame(() => el.style.width = el.dataset.w)); });
-    sec.querySelectorAll('[data-h]').forEach(el => { el.style.height = '0'; requestAnimationFrame(() => requestAnimationFrame(() => el.style.height = el.dataset.h)); });
-  }
-  function show(view) {
-    document.querySelectorAll('.view').forEach(v => v.classList.toggle('hidden', v.id !== 'v-' + view));
-    document.querySelectorAll('.pnav[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === view));
-    enter($('v-' + view));
-    if (view === 'classes') renderClasses();
-    if (view === 'points') renderRewards();
-    if (view === 'history') renderHistory();
-    if (view === 'notifications') renderNotifs();
-    if (view === 'trainer') $('chatBox').scrollTop = $('chatBox').scrollHeight;
-    if (window.innerWidth < 1024) $('pnav').querySelector('.active')?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
-    else window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
-  }
-  document.querySelectorAll('.pnav[data-view]').forEach(b => b.addEventListener('click', () => show(b.dataset.view)));
-  document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => show(b.dataset.go)));
+if($('mems')) {$('mems').innerHTML = MEM.map(m => `<div class="card !p-3 flex gap-4 items-center flex-wrap"><span class="w-14 h-14 rounded-xl flex items-center justify-center text-xl ${m.c}"><i class="fa-solid ${m.ic}"></i></span><div class="flex-1"><b>${m.n}</b><p class="text-xs text-slate-500">${m.s} • UGX ${m.a.toLocaleString()}</p></div></div>`).join('');
+}
 
-  // ================= Dashboard =================
-  const hr = new Date().getHours();
-  $('greet').textContent = (hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening') + ', Grace';
-  const MEMS = [
-    { ic: 'fa-dumbbell', c: 'bg-sky-100 text-sky-600', n: 'Gym Membership', sub: 'Pro · 1 month', amt: 300000, start: -8, left: 22, total: 30 },
-    { ic: 'fa-user-check', c: 'bg-indigo-100 text-indigo-600', n: 'Personal Training Pack', sub: '4 sessions', amt: 240000, start: -20, left: 40, total: 60 },
-    { ic: 'fa-apple-whole', c: 'bg-emerald-100 text-emerald-600', n: 'Nutrition Coaching', sub: '3 months', amt: 180000, start: -30, left: 61, total: 90 }
-  ];
-  function renderMems() {
-    $('memList').innerHTML = '';
-    MEMS.forEach((m, i) => {
-      const warn = m.left <= 7, r = document.createElement('div');
-      r.className = 'mrow st';
-      r.innerHTML = '<div class="mlogo ' + m.c + '"><i class="fa-solid ' + m.ic + '"></i></div><div class="mcols">' +
-        '<div><span class="k">Service</span><span class="v">' + m.n + '</span></div>' +
-        '<div><span class="k">Subscription</span><span class="v">' + m.sub + '</span></div>' +
-        '<div><span class="k">Amount Paid</span><span class="v">' + fmtUGX(m.amt) + '</span></div>' +
-        '<div><span class="k">Subscription Date</span><span class="v">' + nice(addDays(today, m.start)) + '</span></div>' +
-        '<div><span class="k">Days Left</span><span class="v ' + (warn ? '!text-orange-600 !font-bold' : '') + '">' + m.left + ' Days</span><div class="dbar"><i style="width:' + Math.min(100, m.left / m.total * 100) + '%;background:' + (warn ? '#f97316' : 'var(--accent)') + '"></i></div><button class="renew" data-i="' + i + '" type="button">Renew</button></div></div>';
-      $('memList').appendChild(r);
+const chatBox = $('chat');
+if(chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+
+function show(v) {
+  document.querySelectorAll('.view-section').forEach(x => x.classList.add('hidden'));
+  const target = document.querySelector('[data-view="' + v + '"]');
+  if (target) target.classList.remove('hidden');
+  document.querySelectorAll('#nav a').forEach(a => a.classList.toggle('on', a.dataset.v === v));
+}
+
+document.querySelectorAll('#nav a').forEach(a => {
+  a.onclick = e => { e.preventDefault(); show(a.dataset.v); };
+});
+
+// Log payment attempt in database via AJAX, show spinner loader, and redirect to WhatsApp
+async function payViaWhatsApp(planTitle, amount) {
+  const loader = $('whatsapp-loader');
+  if (loader) loader.style.display = 'flex';
+
+  try {
+    const formData = new URLSearchParams();
+    formData.append('log_subscription_attempt', '1');
+    formData.append('plan_title', planTitle);
+    formData.append('amount', amount);
+    formData.append('member_name', ME.name);
+
+    await fetch('portal.php?user_id=<?= $selectedUserId ?>', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: formData.toString()
     });
-    document.querySelectorAll('.renew').forEach(b => b.addEventListener('click', () => {
-      const m = MEMS[+b.dataset.i]; m.left += m.total; renderMems(); toast('Renewal request sent for ' + m.n + '.');
-    }));
-  }
-  renderMems();
-
-  // ---- Upcoming sessions ----
-  const TEMPLATE = [
-    { t: '6:30 AM', n: 'Morning HIIT', c: 'Coach Brian' }, { t: '12:30 PM', n: 'Strength Circuit', c: 'Coach Sarah' },
-    { t: '5:30 PM', n: 'Body Pump', c: 'Coach Moses' }, { t: '7:00 PM', n: 'Boxing Cardio', c: 'Coach Brian' }];
-  const SPOTS = [[8, 5, 2, 9], [6, 0, 7, 4], [3, 8, 0, 6], [9, 2, 5, 7], [4, 6, 8, 0], [7, 3, 1, 10]];
-  const booked = new Map();
-  const bookKey = (d, i) => iso(d) + '-' + i;
-  [[1, 0], [2, 3]].forEach(([a, i]) => { const d = addDays(today, a); if (d.getDay() !== 0) booked.set(bookKey(d, i), { date: d, ...TEMPLATE[i] }); });
-  let pt = { date: addDays(today, 3), t: '5:00 PM', n: 'Personal Training', c: 'Coach Brian' };
-  function renderUpcoming() {
-    const items = [...booked.entries()].map(([k, v]) => ({ k, ...v }));
-    if (pt) items.push({ k: 'pt', ...pt });
-    items.sort((a, b) => a.date - b.date);
-    const sb = $('statBooked'); sb.dataset.count = booked.size; sb.textContent = booked.size;
-    $('upcoming').innerHTML = items.length ? '' : '<li class="py-6 text-sm text-slate-500 text-center">No upcoming sessions. Book a class to get started.</li>';
-    items.forEach(it => {
-      const li = document.createElement('li');
-      li.className = 'py-3 flex items-center justify-between gap-3';
-      li.innerHTML = '<div class="flex items-center gap-3 min-w-0"><span class="w-10 h-10 shrink-0 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center"><i class="fa-solid ' + (it.k === 'pt' ? 'fa-dumbbell' : 'fa-people-group') + '"></i></span><div class="min-w-0"><p class="text-sm font-bold text-slate-900 truncate">' + it.n + '</p><p class="text-xs text-slate-500">' + short(it.date) + ' · ' + it.t + ' · ' + it.c + '</p></div></div>';
-      const x = document.createElement('button');
-      x.type = 'button'; x.className = 'shrink-0 text-xs font-semibold text-slate-400 hover:text-red-600 transition-colors'; x.textContent = 'Cancel';
-      x.addEventListener('click', () => { if (it.k === 'pt') pt = null; else booked.delete(it.k); renderUpcoming(); renderClasses(); toast('Session cancelled.'); });
-      li.appendChild(x); $('upcoming').appendChild(li);
-    });
-    $('trNext').textContent = pt ? short(pt.date) + ' · ' + pt.t + ' · ' + pt.n : 'No session booked. Message Coach Brian to schedule one.';
+  } catch (err) {
+    console.error('Failed to log payment attempt:', err);
   }
 
-  // ================= Trainer =================
-  $('trSince').textContent = nice(addDays(today, -42)).replace(/ \d{4}$/, '');
-  const chat = [{ me: false, t: 'Hi Grace! Great job on your last session. Ready for legs on Thursday?', time: '09:12' }];
-  const clock = () => new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-  function bubble(m, i = 0) {
-    const d = document.createElement('div');
-    d.className = 'bub ' + (m.me ? 'me' : 'them'); rise(d, i);
-    d.innerHTML = m.t.replace(/</g, '&lt;') + '<span>' + m.time + '</span>';
-    $('chatBox').appendChild(d);
-    $('chatBox').scrollTop = $('chatBox').scrollHeight;
-  }
-  chat.forEach(m => bubble(m));
-  const REPLIES = ['Great! Keep your form tight and breathe through each rep.', 'Sure, I will adjust your plan for this week.', 'Remember to drink plenty of water and sleep 7 to 8 hours.', 'Sounds good. See you at your next session!'];
-  let rIdx = 0;
-  $('chatForm').addEventListener('submit', e => {
-    e.preventDefault();
-    const v = $('chatInput').value.trim(); if (!v) return;
-    bubble({ me: true, t: v, time: clock() }); $('chatInput').value = '';
-    const tp = document.createElement('div'); tp.className = 'bub them typing rise'; tp.innerHTML = '<i></i><i></i><i></i>';
-    $('chatBox').appendChild(tp); $('chatBox').scrollTop = $('chatBox').scrollHeight;
-    setTimeout(() => { tp.remove(); bubble({ me: false, t: REPLIES[rIdx++ % REPLIES.length], time: clock() }); }, 1500);
-  });
-  $('msgBtn').addEventListener('click', () => { $('chatCard').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' }); $('chatInput').focus({ preventScroll: true }); });
-  $('changeTrainer').addEventListener('click', () => toast('Request sent. The front desk will contact you.'));
+  const message = `Hello Admin, I have initiated a payment for my gym membership.\n\n*Plan:* ${planTitle}\n*Amount:* UGX ${amount.toLocaleString()}\n*Member Name:* ${ME.name}\n*Member ID:* ${ME.id}\n\nPlease verify and approve my subscription.`;
+  const encodedMessage = encodeURIComponent(message);
+  const whatsappUrl = `https://wa.me/256761448094?text=${encodedMessage}`;
 
-  // ================= Classes =================
-  let selDay = addDays(today, 0); if (selDay.getDay() === 0) selDay = addDays(selDay, 1);
-  function renderDays() {
-    $('days').innerHTML = '';
-    for (let i = 0; i < 7; i++) {
-      const d = addDays(today, i), on = iso(d) === iso(selDay), b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'shrink-0 px-4 py-2.5 rounded-2xl border text-center transition-all ' + (on ? 'text-white scale-105 shadow-md' : 'bg-white border-slate-200 text-slate-700 hover:border-blue-300');
-      if (on) b.style.cssText = 'background:var(--accent);border-color:var(--accent)';
-      b.innerHTML = '<span class="block text-[11px] font-semibold ' + (on ? 'text-blue-100' : 'text-slate-400') + '">' + d.toLocaleDateString('en-GB', { weekday: 'short' }) + '</span><span class="block text-base font-extrabold">' + d.getDate() + '</span>';
-      b.addEventListener('click', () => { selDay = d; renderDays(); renderClasses(); });
-      $('days').appendChild(b);
-    }
-  }
-  function renderClasses() {
-    renderDays();
-    const list = $('classList');
-    if (selDay.getDay() === 0) { list.innerHTML = '<div class="card text-center text-slate-500 text-sm py-10 rise"><i class="fa-regular fa-moon text-3xl text-slate-300"></i><p class="mt-3 font-semibold text-slate-700">Rest day</p><p>The gym is closed on Sundays.</p></div>'; return; }
-    list.innerHTML = '';
-    TEMPLATE.forEach((c, i) => {
-      const k = bookKey(selDay, i), isB = booked.has(k), spots = SPOTS[(selDay.getDay() + 5) % 6][i], full = spots === 0 && !isB;
-      const row = document.createElement('div'); row.className = 'card flex items-center justify-between gap-4 !p-4'; rise(row, i);
-      row.innerHTML = '<div class="flex items-center gap-4 min-w-0"><div class="w-20 shrink-0 text-center"><p class="text-sm font-extrabold text-slate-900">' + c.t + '</p><p class="text-[11px] text-slate-400">60 min</p></div><div class="min-w-0"><p class="font-bold text-slate-900">' + c.n + '</p><p class="text-xs text-slate-500">' + c.c + ' · ' + (full ? '<span class="text-red-500 font-semibold">Full</span>' : spots + ' spots left') + '</p></div></div>';
-      const btn = document.createElement('button'); btn.type = 'button'; btn.disabled = full;
-      btn.className = 'shrink-0 px-5 py-2 rounded-full text-[13px] font-semibold transition-all ' + (isB ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200' : full ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95');
-      btn.textContent = isB ? 'Booked ✓' : full ? 'Full' : 'Book';
-      btn.addEventListener('click', e => {
-        if (isB) { booked.delete(k); toast('Booking cancelled.'); }
-        else { booked.set(k, { date: selDay, ...c }); toast('Booked: ' + c.n + ', ' + c.t); burst(e.clientX, e.clientY); }
-        renderClasses(); renderUpcoming();
-      });
-      row.appendChild(btn); list.appendChild(row);
-    });
-  }
-
-  // ================= Plan =================
-  const WEEK = [['Mon', 'Chest & Triceps', 'Bench press, incline dumbbell press, dips'], ['Tue', 'Back & Biceps', 'Rows, lat pulldown, curls'], ['Wed', 'Cardio & Core', '30 min steady cardio, planks'], ['Thu', 'Legs', 'Squats, lunges, leg press'], ['Fri', 'Shoulders & Arms', 'Overhead press, lateral raises'], ['Sat', 'Full Body HIIT', 'Group class or circuit'], ['Sun', 'Rest', 'Light walk and stretching']];
-  const ta = today.toLocaleDateString('en-GB', { weekday: 'short' });
-  $('week').innerHTML = WEEK.map(w => { const on = w[0] === ta; return '<li class="py-3 flex items-center gap-4 ' + (on ? 'bg-blue-50/70 -mx-3 px-3 rounded-xl' : '') + '"><span class="w-10 text-xs font-extrabold ' + (on ? 'text-blue-600' : 'text-slate-400') + '">' + w[0].toUpperCase() + '</span><div><p class="font-bold text-slate-900">' + w[1] + (on ? ' <span class="text-[10px] bg-blue-600 text-white rounded-full px-2 py-0.5 ml-1 align-middle">TODAY</span>' : '') + '</p><p class="text-xs text-slate-500">' + w[2] + '</p></div></li>'; }).join('');
-  const WT = [82.0, 81.2, 80.5, 79.9, 79.1, 78.6];
-  $('weightChart').innerHTML = WT.map((w, i) => '<div class="flex-1 flex flex-col items-center justify-end h-full gap-1.5"><span class="text-[11px] font-bold text-slate-700">' + w + '</span><div class="w-full rounded-t-lg bg-gradient-to-t from-blue-600 to-sky-400 bar-h" data-h="' + ((w - 74) / 10 * 100) + '%" style="transition-delay:' + (i * 90) + 'ms"></div><span class="text-[10px] text-slate-400">W' + (i + 1) + '</span></div>').join('');
-  $('pbs').innerHTML = [['Bench press', '70 kg', 70], ['Squat', '100 kg', 83], ['Deadlift', '120 kg', 100], ['5 km run', '28:40', 60]].map(p => '<div><div class="flex justify-between"><span class="text-slate-500">' + p[0] + '</span><b class="text-slate-900">' + p[1] + '</b></div><div class="dbar !mt-1.5"><i class="bar" data-w="' + p[2] + '%" style="background:var(--accent)"></i></div></div>').join('');
-
-  // ================= History =================
-  let hTab = 'pay';
-  const PAY = [[1, 'Gym Membership, Pro 1 month', 'MTN Mobile Money', 300000], [2, 'Gym Membership, Pro 1 month', 'MTN Mobile Money', 300000], [3, 'Personal Training Pack', 'Pay at the gym', 240000], [4, 'Nutrition Coaching, 3 months', 'Airtel Money', 180000]];
-  const ORDERS = [['ORD-1058', 'Omega-3 Triple Strength + BCAA 2:1:1', 170000, 'On the way', 'bg-amber-50 text-amber-700', 5], ['ORD-1042', 'Apex Platinum Whey Isolate (2kg)', 185000, 'Delivered', 'bg-green-50 text-green-700', 24], ['ORD-1031', 'Pure Creatine Monohydrate (300g)', 115000, 'Delivered', 'bg-green-50 text-green-700', 51]];
-  const VISITS = [[1, '6:40 AM', 72], [3, '5:55 PM', 85], [4, '6:35 AM', 64], [6, '6:50 AM', 70], [8, '6:30 PM', 90], [10, '6:42 AM', 66], [11, '5:50 PM', 78]];
-  function renderHistory() {
-    document.querySelectorAll('.htab').forEach(b => b.classList.toggle('on', b.dataset.t === hTab));
-    const body = $('hBody'); let rows = [];
-    if (hTab === 'pay') rows = PAY.map(p => '<div class="hrow"><div><p class="font-bold text-slate-900">' + p[1] + '</p><p class="text-xs text-slate-500">' + nice(addDays(today, -30 * p[0] + 22)) + ' · ' + p[2] + '</p></div><div class="text-right"><p class="font-bold text-slate-900">' + fmtUGX(p[3]) + '</p><button class="rcpt text-xs font-semibold text-blue-600 hover:text-blue-700" type="button">Receipt</button></div></div>');
-    if (hTab === 'orders') rows = ORDERS.map(o => '<div class="hrow"><div><p class="text-xs text-slate-400">' + o[0] + ' · ' + nice(addDays(today, -o[5])) + '</p><p class="font-bold text-slate-900">' + o[1] + '</p><p class="text-xs text-slate-500">' + fmtUGX(o[2]) + '</p></div><div class="text-right space-y-2"><span class="inline-block text-[11px] font-extrabold rounded-full px-3 py-1 ' + o[4] + '">' + o[3].toUpperCase() + '</span><br><a href="supplements.html" class="text-xs font-semibold text-blue-600 hover:text-blue-700">Reorder</a></div></div>');
-    if (hTab === 'visits') rows = VISITS.map(v => '<div class="hrow"><div><p class="font-bold text-slate-900">' + short(addDays(today, -v[0])) + '</p><p class="text-xs text-slate-500">Checked in at ' + v[1] + '</p></div><div class="text-right"><p class="font-bold text-slate-900">' + v[2] + ' min</p><p class="text-xs text-slate-400">+10 pts</p></div></div>');
-    body.innerHTML = rows.join('');
-    [...body.children].forEach((r, i) => rise(r, i));
-    body.querySelectorAll('.rcpt').forEach(b => b.addEventListener('click', () => toast('Receipt will be sent to your email.')));
-  }
-  document.querySelectorAll('.htab').forEach(b => b.addEventListener('click', () => { hTab = b.dataset.t; renderHistory(); }));
-
-  // ================= Points =================
-  let points = 1250;
-  const REWARDS = [['Free Personal Training Session', 1000, 'fa-dumbbell'], ['10% Off Supplements Coupon', 500, 'fa-tag'], ['ApexFit Shaker Bottle', 800, 'fa-bottle-water'], ['Guest Day Pass', 300, 'fa-user-plus'], ['Protein Bar Box', 600, 'fa-cookie-bite'], ['1 Week Membership Extension', 1500, 'fa-calendar-plus']];
-  function setPoints(newP) {
-    const from = points; points = newP;
-    document.querySelectorAll('.ptsLive').forEach(el => { el.dataset.count = points; countUp(el, points, from, 800); });
-  }
-  function renderRewards() {
-    const g = $('rewardGrid'); g.innerHTML = '';
-    REWARDS.forEach((r, i) => {
-      const ok = points >= r[1], c = document.createElement('div');
-      c.className = 'card flex items-center gap-4 !p-4 hover:-translate-y-0.5 transition-transform'; rise(c, i);
-      c.innerHTML = '<span class="w-12 h-12 shrink-0 rounded-2xl ' + (ok ? 'bg-amber-50 text-amber-500' : 'bg-slate-100 text-slate-400') + ' flex items-center justify-center text-lg"><i class="fa-solid ' + r[2] + '"></i></span><div class="min-w-0 flex-1"><p class="font-bold text-slate-900 text-sm leading-snug">' + r[0] + '</p><p class="text-xs text-slate-500 mt-0.5"><i class="fa-solid fa-coins text-amber-400"></i> ' + r[1].toLocaleString() + ' pts</p></div>';
-      const b = document.createElement('button'); b.type = 'button';
-      b.className = 'shrink-0 px-4 py-2 rounded-full text-[12px] font-semibold transition-all ' + (ok ? 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95' : 'bg-slate-100 text-slate-400');
-      b.innerHTML = ok ? 'Redeem' : '<i class="fa-solid fa-lock mr-1"></i>' + (r[1] - points) + ' more';
-      b.addEventListener('click', e => {
-        if (!ok) { b.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-6px)' }, { transform: 'translateX(6px)' }, { transform: 'translateX(-4px)' }, { transform: 'translateX(0)' }], { duration: 350 }); toast('You need ' + (r[1] - points) + ' more points.'); return; }
-        setPoints(points - r[1]); burst(e.clientX, e.clientY); toast('Redeemed: ' + r[0]);
-        const li = document.createElement('li'); li.className = 'flex justify-between rise'; li.innerHTML = '<span><i class="fa-solid fa-check text-green-500 mr-2"></i>' + r[0] + '</span><b class="text-slate-900">-' + r[1] + '</b>';
-        const rl = $('redeemedList'); if (rl.children[0] && rl.children[0].classList.contains('text-slate-400')) rl.innerHTML = ''; rl.prepend(li);
-        renderRewards();
-      });
-      c.appendChild(b); g.appendChild(c);
-    });
-    const next = REWARDS.map(r => r[1]).filter(c => c > points).sort((a, b) => a - b)[0];
-    const bar = $('pointsBar');
-    if (next) { $('pointsNext').textContent = (next - points) + ' points to your next reward (' + next.toLocaleString() + ')'; bar.dataset.w = (points / next * 100) + '%'; }
-    else { $('pointsNext').textContent = 'You can afford every reward!'; bar.dataset.w = '100%'; }
-    requestAnimationFrame(() => requestAnimationFrame(() => bar.style.width = bar.dataset.w));
-  }
-
-  // ================= Notifications =================
-  const NOTIFS = [
-    { ic: 'fa-user-tie', t: 'Coach Brian sent you a message', d: 'Ready for legs on Thursday?', ago: '2 hours ago', un: true },
-    { ic: 'fa-triangle-exclamation', t: 'Gym membership renews soon', d: 'Renew before it expires to keep your plan.', ago: 'Yesterday', un: true },
-    { ic: 'fa-bullhorn', t: 'New Boxing Cardio class', d: 'Starts this week, evenings at 7:00 PM.', ago: '2 days ago', un: true },
-    { ic: 'fa-bag-shopping', t: 'Your order is on the way', d: 'ORD-1058 will arrive within 2 days.', ago: '5 days ago', un: false },
-    { ic: 'fa-coins', t: 'You earned 100 points', d: 'Thanks for your supplement order.', ago: '5 days ago', un: false }];
-  function badge() { const n = NOTIFS.filter(x => x.un).length, b = $('nBadge'); b.textContent = n; b.style.display = n ? 'inline-flex' : 'none'; }
-  function renderNotifs() {
-    $('notifList').innerHTML = '';
-    NOTIFS.forEach((n, i) => {
-      const li = document.createElement('li'); li.className = 'card flex items-start gap-4 !p-4 cursor-pointer hover:-translate-y-0.5 transition-all' + (n.un ? ' !border-blue-200 !bg-blue-50/40' : ''); rise(li, i);
-      li.innerHTML = '<span class="w-10 h-10 shrink-0 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center"><i class="fa-solid ' + n.ic + '"></i></span><div class="flex-1 min-w-0"><p class="font-bold text-slate-900 text-sm">' + n.t + '</p><p class="text-sm text-slate-500">' + n.d + '</p><p class="text-xs text-slate-400 mt-1">' + n.ago + '</p></div>' + (n.un ? '<span class="w-2.5 h-2.5 mt-1.5 rounded-full bg-blue-600 pulse"></span>' : '');
-      li.addEventListener('click', () => { if (n.un) { n.un = false; badge(); renderNotifs(); } });
-      $('notifList').appendChild(li);
-    });
-  }
-  $('markAll').addEventListener('click', () => { NOTIFS.forEach(n => n.un = false); badge(); renderNotifs(); toast('All notifications marked as read.'); });
-
-  // ================= Account =================
-  $('profileForm').addEventListener('submit', e => { e.preventDefault(); toast('Profile saved.'); });
-  $('freezeBtn').addEventListener('click', () => { if (confirm('Freeze your membership? Your expiry date will move forward while frozen.')) toast('Freeze request sent to the front desk.'); });
-  $('cancelBtn').addEventListener('click', () => { if (confirm('Cancel your membership? This takes effect when your current period ends.')) toast('Cancellation request sent.'); });
-  $('logoutBtn').addEventListener('click', () => { if (confirm('Log out of your portal?')) location.href = 'index.php'; });
-
-  // ================= Init =================
-  renderUpcoming(); badge(); show('dashboard');
+  setTimeout(() => {
+    window.location.href = whatsappUrl;
+    setTimeout(() => {
+      if (loader) loader.style.display = 'none';
+    }, 2000);
+  }, 1200);
+}
 </script>
 </body>
 </html>
