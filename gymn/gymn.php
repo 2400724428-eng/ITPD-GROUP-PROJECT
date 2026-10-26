@@ -34,102 +34,192 @@
 <main class="flex-grow py-6 px-4 sm:px-6">
 <div class="max-w-[1060px] w-full mx-auto space-y-14">
 
-  <!-- Hero -->
-  <section class="banner-gradient rounded-[2rem] px-6 sm:px-10 lg:px-14 py-10 md:py-14 text-center">
-    <p class="text-blue-600 text-[15px] font-semibold">Expert Coaching</p>
-    <h1 class="text-slate-900 text-3xl sm:text-4xl lg:text-[42px] font-extrabold tracking-tight leading-[1.2] mt-2 max-w-[640px] mx-auto">Gym Training & Services Built Around Your Goals</h1>
-    <p class="text-slate-500 text-sm sm:text-base mt-4 max-w-[520px] mx-auto">From one-on-one coaching to group classes and nutrition plans, everything you need to train smarter and see results.</p>
-    <div class="pt-6 flex flex-wrap items-center justify-center gap-4">
-      <a href="#plans" class="inline-flex px-7 py-3 rounded-full bg-blue-600 text-white font-semibold text-[14px] shadow-sm hover:bg-blue-700 transition-colors">View Plans</a>
-      <a href="book.php" class="inline-flex items-center gap-2 text-slate-800 font-medium text-[14px] hover:text-blue-600 transition-colors">Book a Free Tour <span>→</span></a>
-    </div>
-  </section>
 
-  <!-- Services -->
-  <section>
-    <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Our Services</h2>
-    <p class="text-sm text-slate-500 mt-1">Pick one, or combine them for faster progress</p>
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mt-6">
-      <article class="lift bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
-        <span class="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center text-lg"><i class="fa-solid fa-dumbbell"></i></span>
-        <h3 class="font-bold text-slate-900 text-lg mt-4">Personal Training</h3>
-        <p class="text-sm text-slate-500 mt-1.5 leading-relaxed">One-on-one sessions with a certified coach and a plan tailored to your body and goals.</p>
-      </article>
-      <article class="lift bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
-        <span class="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center text-lg"><i class="fa-solid fa-people-group"></i></span>
-        <h3 class="font-bold text-slate-900 text-lg mt-4">Group Classes</h3>
-        <p class="text-sm text-slate-500 mt-1.5 leading-relaxed">High-energy HIIT, strength and conditioning classes that keep you motivated.</p>
-      </article>
-      <article class="lift bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
-        <span class="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center text-lg"><i class="fa-solid fa-apple-whole"></i></span>
-        <h3 class="font-bold text-slate-900 text-lg mt-4">Nutrition Coaching</h3>
-        <p class="text-sm text-slate-500 mt-1.5 leading-relaxed">Meal guidance and supplement advice that fits your budget and local foods.</p>
-      </article>
-      <article class="lift bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
-        <span class="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center text-lg"><i class="fa-solid fa-weight-scale"></i></span>
-        <h3 class="font-bold text-slate-900 text-lg mt-4">Weight Loss Programs</h3>
-        <p class="text-sm text-slate-500 mt-1.5 leading-relaxed">Structured 8 and 12 week programs with weekly check-ins and progress tracking.</p>
-      </article>
-      <article class="lift bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
-        <span class="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center text-lg"><i class="fa-solid fa-person-running"></i></span>
-        <h3 class="font-bold text-slate-900 text-lg mt-4">Strength & Muscle Gain</h3>
-        <p class="text-sm text-slate-500 mt-1.5 leading-relaxed">Progressive overload programming to build size and strength safely.</p>
-      </article>
-      <article class="lift bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
-        <span class="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center text-lg"><i class="fa-solid fa-laptop"></i></span>
-        <h3 class="font-bold text-slate-900 text-lg mt-4">Online Coaching</h3>
-        <p class="text-sm text-slate-500 mt-1.5 leading-relaxed">Train anywhere with a custom plan, video feedback and chat support from your coach.</p>
-      </article>
-    </div>
-  </section>
 
-  <!-- Plans -->
-  <section id="plans">
-    <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Membership Plans</h2>
-    <p class="text-sm text-slate-500 mt-1">Simple monthly pricing, cancel anytime</p>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5 mt-6 items-stretch">
-      <article class="lift flex flex-col bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
-        <h3 class="font-bold text-slate-900 text-lg">Starter</h3>
-        <p class="mt-3"><span class="text-3xl font-extrabold text-slate-900">UGX 150,000</span><span class="text-sm text-slate-400"> /month</span></p>
-        <ul class="mt-5 space-y-2.5 text-sm text-slate-600 flex-grow">
-          <li><i class="fa-solid fa-check text-sky-500 mr-2"></i>Full gym access</li>
-          <li><i class="fa-solid fa-check text-sky-500 mr-2"></i>Group classes (4 per month)</li>
-          <li><i class="fa-solid fa-check text-sky-500 mr-2"></i>Starter workout plan</li>
-        </ul>
-        <a href="../portal/portalogin.php" class="mt-6 text-center px-6 py-3 rounded-full border border-slate-300 font-semibold text-[14px] hover:border-blue-400 hover:text-blue-600 transition-colors">Get Started</a>
-      </article>
-      <article class="lift relative flex flex-col bg-white rounded-3xl border-2 border-blue-600 shadow-md p-6">
-        <span class="absolute -top-3 left-6 bg-blue-600 text-white text-[11px] font-extrabold px-3 py-1 rounded-full">MOST POPULAR</span>
-        <h3 class="font-bold text-slate-900 text-lg">Pro</h3>
-        <p class="mt-3"><span class="text-3xl font-extrabold text-slate-900">UGX 300,000</span><span class="text-sm text-slate-400"> /month</span></p>
-        <ul class="mt-5 space-y-2.5 text-sm text-slate-600 flex-grow">
-          <li><i class="fa-solid fa-check text-sky-500 mr-2"></i>Everything in Starter</li>
-          <li><i class="fa-solid fa-check text-sky-500 mr-2"></i>Unlimited group classes</li>
-          <li><i class="fa-solid fa-check text-sky-500 mr-2"></i>4 personal training sessions</li>
-          <li><i class="fa-solid fa-check text-sky-500 mr-2"></i>Nutrition guide</li>
-        </ul>
-        <a href="../portal/portalogin.php" class="mt-6 text-center px-6 py-3 rounded-full bg-blue-600 text-white font-semibold text-[14px] shadow-sm hover:bg-blue-700 transition-colors">Join Pro</a>
-      </article>
-      <article class="lift flex flex-col bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
-        <h3 class="font-bold text-slate-900 text-lg">Elite</h3>
-        <p class="mt-3"><span class="text-3xl font-extrabold text-slate-900">UGX 500,000</span><span class="text-sm text-slate-400"> /month</span></p>
-        <ul class="mt-5 space-y-2.5 text-sm text-slate-600 flex-grow">
-          <li><i class="fa-solid fa-check text-sky-500 mr-2"></i>Everything in Pro</li>
-          <li><i class="fa-solid fa-check text-sky-500 mr-2"></i>12 personal training sessions</li>
-          <li><i class="fa-solid fa-check text-sky-500 mr-2"></i>Custom meal plan</li>
-          <li><i class="fa-solid fa-check text-sky-500 mr-2"></i>Weekly progress check-ins</li>
-        </ul>
-        <a href="../portal/portalogin.php" class="mt-6 text-center px-6 py-3 rounded-full border border-slate-300 font-semibold text-[14px] hover:border-blue-400 hover:text-blue-600 transition-colors">Go Elite</a>
-      </article>
-    </div>
-  </section>
 
-  <!-- CTA -->
-  <section class="banner-gradient rounded-[2rem] px-6 py-10 text-center mb-6">
-    <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Ready to start training?</h2>
-    <p class="text-sm text-slate-500 mt-2">Book a free tour and fitness assessment with one of our coaches.</p>
-    <a href="book.php" class="inline-flex mt-6 px-7 py-3 rounded-full bg-blue-600 text-white font-semibold text-[14px] shadow-sm hover:bg-blue-700 transition-colors">Book Free Tour</a>
-  </section>
+
+
+
+
+
+<!-- BEGIN: PricingPlansSection -->
+<section class="py-20 bg-[#F8F9FA]" data-purpose="pricing-plans-section" id="pricing">
+<div class="max-w-6xl mx-auto px-4 sm:px-6">
+<!-- Header -->
+<div class="text-center max-w-2xl mx-auto mb-16">
+<h2 class="font-heading text-3xl sm:text-4xl font-bold uppercase tracking-tight text-gray-900">
+            Our Pricing Plans
+          </h2>
+<div class="w-12 h-1 bg-blue-600 mx-auto mt-2 mb-3"></div>
+<p class="text-xs uppercase tracking-widest text-gray-500 font-semibold">
+            A Transparent Fitness Plan Engineered For Everyone
+          </p>
+</div>
+<!-- Pricing Cards Grid: Forces 2 columns on mobile, drops the 3rd centered below -->
+<div class="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8 items-stretch max-w-5xl mx-auto">
+<!-- Plan 1: Starter -->
+<div class="bg-white p-4 sm:p-8 border border-gray-200 shadow-sm text-center rounded-xl overflow-hidden flex flex-col justify-between">
+<div>
+<h4 class="font-heading font-bold text-sm sm:text-xl uppercase tracking-wider text-gray-800">Ultimate Silver</h4>
+<div class="my-4">
+<span class="text-base sm:text-2xl font-heading font-bold text-black block sm:inline">UGX 180,000</span>
+<span class="text-[10px] sm:text-xs text-gray-500 font-medium tracking-wide">/ month</span>
+</div>
+<ul class="text-[11px] sm:text-xs text-gray-600 space-y-2 sm:space-y-3 py-4 sm:py-6 border-t border-b border-gray-100 text-left sm:text-center">
+<li>Full Gym Access (Open Hours)</li>
+<li>Monthly Body Scan</li>
+<li>Standard Mobile App</li>
+<li>Locker &amp; Sauna Access</li>
+</ul>
+</div>
+<div class="mt-4 sm:mt-6">
+<a class="block w-full bg-blue-600 hover:bg-blue-700 text-white py-2 sm:py-2.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest transition rounded-lg" href="#contact">
+                Select Plan
+              </a>
+</div>
+</div>
+<!-- Plan 2: Featured Trainer Card (Gold) -->
+<div class="bg-white border-2 border-blue-600 shadow-xl relative overflow-hidden rounded-xl flex flex-col justify-between">
+<div>
+<div class="bg-blue-600 text-white text-[9px] sm:text-[11px] font-bold uppercase tracking-widest text-center py-1">
+              Most Popular
+            </div>
+<!-- Trainer Highlight Visual in Center Card -->
+<div class="h-24 sm:h-44 overflow-hidden relative bg-gray-100">
+<img alt="Muscular trainer athlete with towel around neck" class="w-full h-full object-cover object-top" src="assets/images/pp.png"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+<span class="absolute bottom-1.5 left-2 sm:bottom-3 sm:left-4 text-white font-heading text-xs sm:text-lg font-bold uppercase tracking-wider pinned-text">
+                Nutrition &amp; Body
+              </span>
+</div>
+<div class="p-4 sm:p-8 text-center">
+<div class="mb-4">
+<span class="text-base sm:text-2xl font-heading font-bold text-black block sm:inline">UGX 330,000</span>
+<span class="text-[10px] sm:text-xs text-gray-500 font-medium tracking-wide">/ month</span>
+</div>
+<ul class="text-[11px] sm:text-xs text-gray-600 space-y-2 sm:space-y-3 py-2 sm:py-4 border-t border-b border-gray-100 text-left sm:text-center">
+<li class="font-semibold text-black">4 Personalized Sessions</li>
+<li>Nutrition Strategy</li>
+<li>24/7 Coach Chat</li>
+<li>Progress Adjustments</li>
+</ul>
+</div>
+</div>
+<div class="p-4 sm:p-8 pt-0 text-center">
+<a class="block w-full bg-blue-600 hover:bg-blue-700 text-white py-2 sm:py-3 text-[10px] sm:text-xs font-bold uppercase tracking-widest transition shadow-md rounded-lg" href="#contact">
+                  Choose Gold
+                </a>
+</div>
+</div>
+<!-- Plan 3: Platinum - Made to sit centrally underneath the two blocks on mobile -->
+<div class="bg-white p-4 sm:p-8 border border-gray-200 shadow-sm text-center rounded-xl overflow-hidden col-span-2 lg:col-span-1 max-w-[50%] lg:max-w-none mx-auto flex flex-col justify-between w-full mt-4 lg:mt-0">
+<div>
+<h4 class="font-heading font-bold text-sm sm:text-xl uppercase tracking-wider text-gray-800">Diamond Elite</h4>
+<div class="my-4">
+<span class="text-base sm:text-2xl font-heading font-bold text-black block sm:inline">UGX 550,000</span>
+<span class="text-[10px] sm:text-xs text-gray-500 font-medium tracking-wide">/ month</span>
+</div>
+<ul class="text-[11px] sm:text-xs text-gray-600 space-y-2 sm:space-y-3 py-4 sm:py-6 border-t border-b border-gray-100 text-left sm:text-center">
+<li>Unlimited 1-on-1 Coaching</li>
+<li>Daily Nutrition Tracking</li>
+<li>Class &amp; Yoga Passes</li>
+<li>VIP Private Locker</li>
+</ul>
+</div>
+<div class="mt-4 sm:mt-6">
+<a class="block w-full bg-blue-600 hover:bg-blue-700 text-white py-2 sm:py-2.5 text-[10px] sm:text-xs font-bold uppercase tracking-widest transition rounded-lg" href="#contact">
+                Select Plan
+              </a>
+</div>
+</div>
+</div>
+<div class="mt-14 text-center">
+
+</div>
+</div>
+</section>
+<!-- END: PricingPlansSection -->
+
+
+
+
+
+
+<div class="text-center max-w-2xl mx-auto mb-16">
+<h2 class="font-heading text-3xl sm:text-4xl font-bold uppercase tracking-tight text-gray-900">
+            What We Do
+          </h2>
+<div class="w-12 h-1 bg-brandYellow mx-auto mt-2 mb-3"></div>
+<p class="text-xs uppercase tracking-widest text-gray-500 font-semibold">
+            A Comprehensive Fitness Plan Built For Measurable Success
+          </p>
+</div>
+<!-- Content Grid: 4 Services Left + Athletic Pair with Yellow Square Right -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+<!-- 4 Services Left Column -->
+<div class="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-8" data-purpose="services-list">
+<!-- Service 1: Body Audit -->
+<div class="space-y-2 bg-white/70 p-5 rounded border border-gray-200/60">
+<h4 class="font-heading font-bold text-lg text-gray-900 tracking-wide uppercase">
+                Body Audit
+              </h4>
+<p class="text-xs text-gray-600 leading-relaxed">
+                Complete anthropometric bio-scans, mobility screens, and postural diagnostics to spot weaknesses and construct a baseline before day one.
+              </p>
+</div>
+<!-- Service 2: Yoga Studio -->
+<div class="space-y-2 bg-white/70 p-5 rounded border border-gray-200/60">
+<h4 class="font-heading font-bold text-lg text-gray-900 tracking-wide uppercase">
+                Yoga Studio
+              </h4>
+<p class="text-xs text-gray-600 leading-relaxed">
+                Dynamic flow sessions, joint decompression, and active muscular recovery aimed at reducing stress hormones and unlocking mobility.
+              </p>
+</div>
+<!-- Service 3: Cardio Fitness -->
+<div class="space-y-2 bg-white/70 p-5 rounded border border-gray-200/60">
+<h4 class="font-heading font-bold text-lg text-gray-900 tracking-wide uppercase">
+                Cardio Fitness
+              </h4>
+<p class="text-xs text-gray-600 leading-relaxed">
+                Targeted metabolic conditioning, zone-2 base building, and high-intensity interval training designed for rapid fat loss and endurance.
+              </p>
+</div>
+<!-- Service 4: Pilates Fitness -->
+<div class="space-y-2 bg-white/70 p-5 rounded border border-gray-200/60">
+<h4 class="font-heading font-bold text-lg text-gray-900 tracking-wide uppercase">
+                Pilates Fitness
+              </h4>
+<p class="text-xs text-gray-600 leading-relaxed">
+                Precision resistance work emphasizing pelvic alignment, core activation, balance, and athletic injury prevention.
+              </p>
+</div>
+</div>
+<!-- Athletic Couple Right Column with Yellow Graphic -->
+<div class="lg:col-span-5 relative flex justify-center" data-purpose="services-visual">
+<!-- Bold Yellow Geometric Backdrop -->
+<div class="absolute right-4 top-6 w-60 h-72 sm:w-72 sm:h-80 bg-brandYellow -z-0"></div>
+<div class="relative z-10 pt-4 pr-6">
+<img alt="Athletic trainers standing together in sportswear" class="w-full max-w-sm h-auto object-cover shadow-xl" src="assets/images/uu.png"/>
+</div>
+</div>
+</div>
+</div>
+</section> <br> <br>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 </div>
 </main>

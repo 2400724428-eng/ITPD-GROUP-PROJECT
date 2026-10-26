@@ -30,6 +30,7 @@
 
 <main class="max-w-[1100px] mx-auto space-y-8">
 
+ <?php include 'includes/searchtop.php'; ?>  <br>
 
 
     <!-- Hero Section -->

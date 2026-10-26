@@ -155,7 +155,7 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
   <section class="auth-scroll relative flex items-start justify-center w-full px-5 sm:px-10 py-10 overflow-x-hidden">
     <div class="relative w-full max-w-[440px]">
       <div class="logo-row flex items-center justify-center mb-8">
-        <img src="../assets/images/logos.png" alt="PURE GAIN" class="h-14 w-auto max-w-[240px] object-contain"/>
+        <img src="../assets/images/fav.png" alt="PURE GAIN" class="h-14 w-auto max-w-[240px] object-contain"/>
       </div>
 
       <?php if (!empty($error_message)): ?>
@@ -192,11 +192,16 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
                 <input name="password" type="password" required placeholder="••••••••" class="inp"/>
                 <i class="fa-solid fa-lock ico"></i>
               </div>
+
+<a href="forgot-password.php" class="text-xs font-semibold text-sky-600 hover:underline">Forgot password?</a>
+
             </div>
             <button type="submit" class="rise submit-btn btn-shine w-full h-12 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-sm font-bold shadow-lg shadow-sky-500/30 flex items-center justify-center gap-2">
               <span>Sign In</span><i class="fa-solid fa-arrow-right text-xs"></i>
             </button>
           </form>
+
+          
         </div>
 
         <!-- SCREEN 2: TRAINER SIGN IN -->
@@ -218,6 +223,9 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
               <div class="relative field">
                 <input name="password" type="password" required placeholder="••••••••" class="inp"/>
                 <i class="fa-solid fa-lock ico"></i>
+
+<a href="forgot-password.php" class="text-xs font-semibold text-sky-600 hover:underline">Forgot password?</a>
+
               </div>
             </div>
             <button type="submit" class="rise submit-btn btn-shine w-full h-12 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-sm font-bold shadow-lg shadow-sky-500/30 flex items-center justify-center gap-2">

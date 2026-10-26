@@ -397,6 +397,44 @@ tailwind.config = { theme: { extend: { fontFamily: { sans: ['"Plus Jakarta Sans"
       console.error('Failed to remove item', err);
     }
   }
+
+
+
+
+
 </script>
+
+
+
+<script>
+  // Poll order statuses every 20s while on the "My Orders" tab
+  let orderPollTimer = null;
+
+  function startOrderPolling() {
+    if (orderPollTimer) return;
+    orderPollTimer = setInterval(async () => {
+      const activeTab = document.getElementById('tabContentOrders');
+      if (!activeTab || activeTab.classList.contains('hidden')) return;
+
+      try {
+        const r = await fetch(window.location.href + '?poll_orders=1', { cache: 'no-store' });
+        const html = await r.text();
+        const doc  = new DOMParser().parseFromString(html, 'text/html');
+        const fresh = doc.getElementById('tabContentOrders');
+        const curr  = document.getElementById('tabContentOrders');
+        if (fresh && curr) curr.innerHTML = fresh.innerHTML;
+      } catch (e) { /* silent */ }
+    }, 20000);
+  }
+
+  document.addEventListener('DOMContentLoaded', startOrderPolling);
+</script>
+
+
+
+
+
+
+
 </body>
 </html>

@@ -1,99 +1,193 @@
 <?php
-session_start();
-require_once 'includes/db_connect.php'; // adjust path if needed
+require_once __DIR__ . '/includes/db_connect.php';
 
-$errors = [];
-$success = false;
+$error = '';
+$stage = 'form';        // 'form' | 'code'
+$shortCode = '';
+$resetUrl  = '';
+$email     = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email'] ?? '');
 
-    if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $errors[] = "Please enter a valid email address.";
+    if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $error = 'Enter a valid email address.';
     } else {
-        // Check if email exists
-        $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ? LIMIT 1");
-        $stmt->execute([$email]);
-        $user = $stmt->fetch();
+        try {
+            // 0. AUTO-CREATE the table if it doesn't exist
+            $pdo->exec("CREATE TABLE IF NOT EXISTS pg_password_resets (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                email VARCHAR(255) NOT NULL,
+                user_id INT DEFAULT NULL,
+                token_hash CHAR(64) NOT NULL,
+                short_code_hash CHAR(64) NOT NULL,
+                expires_at DATETIME NOT NULL,
+                consumed TINYINT(1) DEFAULT 0,
+                ip VARCHAR(45) DEFAULT NULL,
+                requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX (email),
+                INDEX (expires_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
 
-        if ($user) {
-            // Generate 6-digit PIN
-            $pin = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-            $token_hash = password_hash($pin, PASSWORD_DEFAULT);
-            $expires_at = date('Y-m-d H:i:s', strtotime('+15 minutes'));
+            // 1. Look up the user in the `users` table
+            $stmt = $pdo->prepare("SELECT id FROM users WHERE email = :e LIMIT 1");
+            $stmt->execute([':e' => $email]);
+            $user = $stmt->fetch();
 
-            // Delete any old unused tokens for this email
-            $pdo->prepare("DELETE FROM password_resets WHERE email = ?")->execute([$email]);
+            // 2. Generate the visual code + long token
+            $shortCode = strtoupper(bin2hex(random_bytes(4)));      // 8 hex chars (e.g. 9F3A2C7B)
+            $token     = bin2hex(random_bytes(32));                 // 64 hex chars
+            $shortHash = hash('sha256', $shortCode);
+            $tokenHash = hash('sha256', $token);
+            $expires   = (new DateTime('+15 minutes'))->format('Y-m-d H:i:s');
+            $ip        = $_SERVER['REMOTE_ADDR'] ?? null;
 
-            // Store new token
-            $stmt = $pdo->prepare(
-                "INSERT INTO password_resets (email, token_hash, expires_at) VALUES (?, ?, ?)"
+            // 3. Invalidate any previous unused codes for this email
+            $pdo->prepare("UPDATE pg_password_resets SET consumed = 1 WHERE email = :e AND consumed = 0")
+                ->execute([':e' => $email]);
+
+            // 4. Insert the new reset request
+            $ins = $pdo->prepare(
+                "INSERT INTO pg_password_resets (email, user_id, token_hash, short_code_hash, expires_at, ip)
+                 VALUES (:email, :uid, :th, :sh, :exp, :ip)"
             );
-            $stmt->execute([$email, $token_hash, $expires_at]);
+            $ins->execute([
+                ':email' => $email,
+                ':uid'   => $user['id'] ?? null,   // `users.id`, not `user_id`
+                ':th'    => $tokenHash,
+                ':sh'    => $shortHash,
+                ':exp'   => $expires,
+                ':ip'    => $ip,
+            ]);
 
-            // Send email
-            $subject = "Your Password Reset PIN - Pure Gain";
-            $message = "Hello,\n\n"
-                     . "You requested a password reset for your Pure Gain account.\n\n"
-                     . "Your 6-digit PIN is: $pin\n\n"
-                     . "This PIN is valid for 15 minutes.\n\n"
-                     . "If you did not request this, please ignore this email.\n\n"
-                     . "— Pure Gain Team";
-            $headers = "From: noreply@yourdomain.com\r\n";
-            $headers .= "Reply-To: noreply@yourdomain.com\r\n";
-            $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
-
-            // On free hosting mail() often works. For better reliability use PHPMailer later.
-            @mail($email, $subject, $message, $headers);
+            // 5. Build URL to next step
+            $resetUrl = 'reset-password.php?token=' . urlencode($token) . '&email=' . urlencode($email);
+            $stage = 'code';
+        } catch (Throwable $e) {
+            error_log('[forgot-password] ' . $e->getMessage());
+            $error = 'Database Error: ' . $e->getMessage(); // Temporarily visible for debugging
         }
-
-        // Always show success message (prevents email enumeration)
-        $_SESSION['reset_email'] = $email; // pass email securely to next page
-        header("Location: reset-password.php");
-        exit;
     }
 }
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Forgot Password – Pure Gain</title>
-    <link href="./src/output.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>body{font-family:'Plus Jakarta Sans',sans-serif}</style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Forgot Password - PURE GAIN</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+    tailwind.config = { theme: { extend: {
+        fontFamily: { sans: ['Plus Jakarta Sans', 'Inter', 'sans-serif'] },
+        colors: { brand: { navy: '#1e3a8a' } }
+    }}}
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-font-smoothing: antialiased;
+           background-color: #f8fafc; position: relative; isolation: isolate; overflow-x: hidden; min-height: 100vh; }
+    body::before { content:""; position: absolute; z-index: -1; top: -35%; right: -10%; width: 75%; height: 145%;
+        background: radial-gradient(ellipse at 72% 30%, rgba(96,165,250,0.4) 0%, rgba(147,197,253,0.25) 30%, rgba(219,234,254,0.1) 52%, transparent 75%);
+        border-radius: 50% 0 0 50%; transform: rotate(-12deg); pointer-events: none; }
+    body::after { content:""; position: absolute; z-index: -1; right: -12%; bottom: -20%; width: 100%; height: 85%;
+        background: linear-gradient(125deg, rgba(219,234,254,0.8) 0%, rgba(147,197,253,0.8) 28%, rgba(59,130,246,0.8) 62%, rgba(29,78,216,0.9) 100%);
+        border-radius: 55% 0 0 0; transform: rotate(-8deg); pointer-events: none; }
+    .card-gradient { position: relative; isolation: isolate; background: rgba(255,255,255,0.85);
+                     backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+</style>
 </head>
-<body class="bg-slate-50 min-h-screen flex items-center justify-center p-4">
+<body class="text-slate-800 antialiased grid place-items-center p-4 sm:p-6">
 
-<div class="w-full max-w-md bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-    <h1 class="text-2xl font-bold text-slate-900 mb-2">Forgot Password</h1>
-    <p class="text-slate-600 text-sm mb-6">Enter your registered email and we’ll send you a 6-digit PIN.</p>
+<div class="card-gradient w-full max-w-[460px] rounded-[2rem] shadow-[0_25px_60px_-15px_rgba(30,64,175,0.3)] border border-white/60 overflow-hidden relative z-10">
 
-    <?php if (!empty($errors)): ?>
-        <div class="mb-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg">
-            <?= htmlspecialchars($errors[0]) ?>
+    <div class="p-8 text-center relative border-b border-white/40">
+        <div class="absolute top-5 left-5 z-10">
+            <a href="login.php" class="text-brand-navy/60 hover:text-brand-navy transition-colors flex items-center gap-1.5 text-xs font-semibold tracking-wide">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                BACK
+            </a>
         </div>
-    <?php endif; ?>
-
-    <form method="POST" action="">
-        <div class="mb-5">
-            <label class="block text-sm font-medium text-slate-700 mb-1.5">Email address</label>
-            <input type="email" name="email" required
-                   class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
-                   placeholder="you@example.com"
-                   value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
+        <div class="relative z-10 mt-4">
+            <div class="w-16 h-16 bg-white/80 shadow-sm border border-white rounded-2xl mx-auto flex items-center justify-center mb-4 overflow-hidden p-2">
+                <img src="assets/images/fav.png" alt="Logo" class="w-full h-full object-cover rounded-xl">
+            </div>
+            <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">
+                <?= $stage === 'code' ? 'Your Reset Code' : 'Forgot Password' ?>
+            </h1>
+            <p class="text-slate-600 text-sm mt-1.5 font-medium">
+                <?= $stage === 'code'
+                    ? 'Copy this code, then continue to set a new password.'
+                    : 'Enter your account email to receive a reset code.' ?>
+            </p>
         </div>
+    </div>
 
-        <button type="submit"
-                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl transition">
-            Send Reset PIN
-        </button>
-    </form>
+    <div class="p-8 relative z-10 bg-white/30">
 
-    <p class="mt-6 text-center text-sm text-slate-500">
-        <a href="login.php" class="text-blue-600 hover:underline">Back to Login</a>
-    </p>
+        <?php if ($error): ?>
+            <div class="mb-4 text-sm text-red-700 bg-red-100/80 border border-red-200 rounded-lg px-3 py-2">
+                <?= htmlspecialchars($error) ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if ($stage === 'form'): ?>
+            <form method="POST" class="space-y-5">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-800 mb-2">Email Address</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                            <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                            </svg>
+                        </div>
+                        <input type="email" name="email" required
+                            value="<?= htmlspecialchars($_POST['email'] ?? '') ?>"
+                            class="w-full pl-11 pr-4 py-3 bg-white/90 border border-white/50 rounded-xl focus:outline-none focus:bg-white focus:border-brand-navy focus:ring-2 focus:ring-brand-navy/20 transition-all text-slate-800 font-medium text-sm placeholder:text-slate-400 placeholder:font-normal shadow-sm"
+                            placeholder="you@example.com">
+                    </div>
+                </div>
+
+                <button type="submit"
+                    class="w-full bg-brand-navy text-white font-bold text-sm py-3.5 rounded-xl hover:bg-blue-900 hover:shadow-lg hover:shadow-brand-navy/30 active:scale-[0.98] transition-all duration-200">
+                    Generate Reset Code
+                </button>
+            </form>
+
+        <?php else: ?>
+            <!-- Show the generated visual code -->
+            <div class="text-center">
+                <div class="inline-block px-8 py-5 bg-white border-2 border-dashed border-brand-navy/40 rounded-2xl shadow-sm">
+                    <div class="text-[11px] font-semibold text-slate-500 uppercase tracking-widest mb-1">Your code</div>
+                    <div class="text-3xl sm:text-4xl font-extrabold tracking-[0.35em] text-brand-navy select-all">
+                        <?= htmlspecialchars($shortCode) ?>
+                    </div>
+                </div>
+                <p class="text-[11px] text-slate-500 mt-3">
+                    Valid for <strong>15 minutes</strong>. Copy it and click Continue.
+                </p>
+            </div>
+
+            <div class="mt-6 space-y-3">
+                <a href="<?= htmlspecialchars($resetUrl) ?>"
+                   class="block text-center w-full bg-brand-navy text-white font-bold text-sm py-3.5 rounded-xl hover:bg-blue-900 hover:shadow-lg transition-all">
+                    I've copied it — Continue
+                </a>
+                <p class="text-center text-[11px] text-slate-500">
+                    Sent to <strong><?= htmlspecialchars($email) ?></strong>
+                </p>
+                <a href="forgot-password.php"
+                   class="block text-center text-xs font-semibold text-slate-600 hover:text-brand-navy">
+                    ← Use a different email
+                </a>
+            </div>
+        <?php endif; ?>
+
+        <div class="mt-6 text-center">
+            <a href="login.php" class="text-xs font-semibold text-brand-navy hover:underline">← Back to Sign In</a>
+        </div>
+    </div>
 </div>
 
 </body>
