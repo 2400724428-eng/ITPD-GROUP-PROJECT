@@ -130,6 +130,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between selection:bg-blue-500 selection:text-white">
 
+ <?php include 'includes/searchtop.php'; ?> 
+
+
     <!-- Main Content Container -->
     <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-16 w-full flex-grow">
         
@@ -353,5 +356,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     </script>
+
+<br> <br>
+  <?php include 'includes/footer.php'; ?>
+
 </body>
 </html>

@@ -1,7 +1,4 @@
 <?php
-
-
-
 // Step out to root to require database connection
 require_once __DIR__ . '/includes/db_connect.php';
 
@@ -17,13 +14,18 @@ try {
     $dbCategories =$catStmt->fetchAll(PDO::FETCH_COLUMN);
 
     if (empty($dbCategories)) {
-        // Fallback to distinct categories in products table
         $catStmt =$pdo->query("SELECT DISTINCT category FROM products WHERE category IS NOT NULL AND category != '' ORDER BY category ASC");
         $dbCategories =$catStmt->fetchAll(PDO::FETCH_COLUMN);
     }
 
-    // 2. Fetch Products with Real Ratings & Review Counts from 'comments' table
-    $productStmt =$pdo->query("
+    // 2. Capture parameters from URL (Search query, Category, Price Range, Sort)
+    $searchQuery = isset($_GET['q']) ? trim($_GET['q']) : '';$selectedCat = isset($_GET['cat']) ? trim($_GET['cat']) : 'All Categories';
+    $minPrice    = isset($_GET['min']) && $_GET['min'] !== '' ? (float)$_GET['min'] : null;
+    $maxPrice    = isset($_GET['max']) && $_GET['max'] !== '' ? (float)$_GET['max'] : null;
+    $sortOption  = isset($_GET['sort']) ? trim($_GET['sort']) : 'newest';
+
+    // 3. Build Database Query with Prepared Statements
+    $sql = "
         SELECT 
             p.id, 
             p.product_name AS name, 
@@ -37,21 +39,62 @@ try {
             COUNT(c.id) AS real_reviews
         FROM products p
         LEFT JOIN comments c ON p.id = c.product_id
-        GROUP BY p.id
-        ORDER BY p.id DESC
-    ");
+        WHERE 1=1
+    ";
+    
+    $params = [];
+
+    // Search Query Condition: Matches products starting with the typed letter/word
+    if ($searchQuery !== '') {$sql .= " AND (p.product_name LIKE ? OR p.category LIKE ?)";
+        $params[] = "{$searchQuery}%";
+        $params[] = "{$searchQuery}%";
+    }
+
+    // Category Condition
+    if ($selectedCat !== 'All Categories' && $selectedCat !== '') {$sql .= " AND p.category = ?";
+        $params[] =$selectedCat;
+    }
+
+    // Price Range Condition
+    if ($minPrice !== null) {$sql .= " AND (CASE WHEN p.offer_price > 0 AND p.offer_price < p.product_price THEN p.offer_price ELSE p.product_price END) >= ?";
+        $params[] =$minPrice;
+    }
+    if ($maxPrice !== null) {$sql .= " AND (CASE WHEN p.offer_price > 0 AND p.offer_price < p.product_price THEN p.offer_price ELSE p.product_price END) <= ?";
+        $params[] =$maxPrice;
+    }
+
+    $sql .= " GROUP BY p.id";
+
+    // Sorting Condition
+    switch ($sortOption) {
+        case 'price-asc':
+            $sql .= " ORDER BY (CASE WHEN p.offer_price > 0 AND p.offer_price < p.product_price THEN p.offer_price ELSE p.product_price END) ASC";
+            break;
+        case 'price-desc':
+            $sql .= " ORDER BY (CASE WHEN p.offer_price > 0 AND p.offer_price < p.product_price THEN p.offer_price ELSE p.product_price END) DESC";
+            break;
+        case 'rating':
+            $sql .= " ORDER BY real_rating DESC, real_reviews DESC";
+            break;
+        case 'newest':
+        default:
+            $sql .= " ORDER BY p.id DESC";
+            break;
+    }
+
+    $productStmt = $pdo->prepare($sql);
+    $productStmt->execute($params);
     $dbProducts =$productStmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // 3. Fetch user's wishlist IDs directly from the database if logged in
+    // 4. Fetch user's wishlist IDs directly from database
     $userWishlist = [];
     if ($userId > 0) {
         $wishStmt =$pdo->prepare("SELECT product_id FROM wishlist WHERE user_id = ?");
         $wishStmt->execute([$userId]);
-        $userWishlist =$wishStmt->fetchAll(PDO::FETCH_COLUMN);
-        $userWishlist = array_map('intval',$userWishlist);
+        $userWishlist = array_map('intval',$wishStmt->fetchAll(PDO::FETCH_COLUMN));
     }
 
-    // Format products array for JavaScript
+    // Format products array for JavaScript rendering
     $formattedProducts = array_map(function($p) {
         $price = (float)$p['price'];
         $offer = (float)$p['offer'];
@@ -118,22 +161,9 @@ try {
   }
 </style>
 </head>
-<body class="bg-white text-slate-800 font-sans antialiased min-h-screen py-5 sm:py-8 px-3 sm:px-6 lg:px-8">
+<body class="bg-white text-slate-800 font-sans antialiased min-h-screen py-3 sm:py-8 px-2 sm:px-6 lg:px-8">
 
-
-<?php 
-if (file_exists(__DIR__ . '/includes/top.php')) {
-    include __DIR__ . '/includes/top.php'; 
-}
-?>
-
-<!-- FLOATING WISHLIST WIDGET -->
-<a href="wishlist.php" id="floating-wishlist" class="fixed bottom-6 left-6 z-40 bg-white border border-slate-200 text-slate-800 p-3.5 rounded-full shadow-2xl flex items-center justify-center hover:scale-105 transition-transform group" aria-label="View Wishlist">
-  <div class="relative flex items-center justify-center w-6 h-6">
-    <i class="fa-solid fa-heart text-red-500 text-lg"></i>
-    <span id="wishlist-counter" class="absolute -top-2 -right-2 bg-red-500 text-white font-extrabold text-[10px] w-5 h-5 rounded-full flex items-center justify-center shadow-md">0</span>
-  </div>
-</a>
+<?php include 'includes/searchtop.php'; ?>  <br>
 
 <!-- FLOATING SUCCESS TOAST NOTIFICATION -->
 <div id="toast-msg" class="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-xl transition-all duration-300 opacity-0 translate-y-4 pointer-events-none">
@@ -146,7 +176,7 @@ if (file_exists(__DIR__ . '/includes/top.php')) {
 <div class="max-w-[1320px] mx-auto">
 
   <!-- Breadcrumb -->
-  <nav class="flex items-center gap-2 text-xs text-slate-500 mb-5 sm:mb-6" aria-label="Breadcrumb">
+  <nav class="flex items-center gap-2 text-xs text-slate-500 mb-4 sm:mb-6" aria-label="Breadcrumb">
     <a href="index.php" class="hover:text-sky-600 transition-colors" aria-label="Home"><i class="fa-solid fa-house"></i></a>
     <span>/</span>
     <span class="font-bold text-slate-900">All Products</span>
@@ -159,7 +189,7 @@ if (file_exists(__DIR__ . '/includes/top.php')) {
       <h2 class="hidden lg:block text-[13px] font-bold text-slate-900 px-1 mb-3">Categories</h2>
 
       <!-- Dynamic Category Chips -->
-      <div id="category-list" class="no-scrollbar flex lg:flex-col gap-2 lg:gap-1 overflow-x-auto lg:overflow-visible -mx-3 px-3 lg:mx-0 lg:px-0 pb-1 lg:pb-0"></div>
+      <div id="category-list" class="no-scrollbar flex lg:flex-col gap-2 lg:gap-1 overflow-x-auto lg:overflow-visible -mx-2 px-2 lg:mx-0 lg:px-0 pb-1 lg:pb-0"></div>
 
       <div class="mt-4 lg:mt-6">
         <h2 class="text-[13px] font-bold text-slate-900 px-1 mb-2">Price Range <span class="font-medium text-slate-400">(UGX)</span></h2>
@@ -174,12 +204,12 @@ if (file_exists(__DIR__ . '/includes/top.php')) {
 
     <!-- ============ MAIN ============ -->
     <main class="flex-1 min-w-0 w-full relative min-h-[400px]">
-      <div class="flex items-start sm:items-center justify-between gap-4 mb-5">
+      <div class="flex items-center justify-between gap-2 mb-4 sm:mb-5">
         <div>
-          <h1 id="page-title" class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">All Products</h1>
+          <h1 id="page-title" class="text-xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">All Products</h1>
           <p id="count" class="text-xs sm:text-sm text-slate-500 mt-0.5">0 products found</p>
         </div>
-        <select id="sort" class="shrink-0 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus:ring-sky-400 focus:border-sky-400" aria-label="Sort products">
+        <select id="sort" class="shrink-0 bg-white border border-slate-200 rounded-xl px-2 py-1.5 sm:px-3 sm:py-2 text-xs font-semibold text-slate-700 focus:ring-sky-400 focus:border-sky-400" aria-label="Sort products">
           <option value="newest">Newest</option>
           <option value="price-asc">Price: Low to High</option>
           <option value="price-desc">Price: High to Low</option>
@@ -192,8 +222,8 @@ if (file_exists(__DIR__ . '/includes/top.php')) {
         <div class="turning-circle"></div>
       </div>
 
-      <!-- Products Grid -->
-      <div id="grid" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5"></div>
+      <!-- Products Grid: Locked to 2 columns on mobile screens -->
+      <div id="grid" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-4"></div>
 
       <div id="empty" class="hidden text-center py-20">
         <i class="fa-regular fa-face-frown text-3xl text-slate-300"></i>
@@ -204,12 +234,20 @@ if (file_exists(__DIR__ . '/includes/top.php')) {
   </div>
 </div>
 
+
+
+
+
+
+
+
+
 <script>
-  // Dynamic JSON injected directly from database PDO queries[cite: 1]
+  // Dynamic JSON injected directly from database PDO queries
   const CATEGORIES = <?= json_encode($dbCategories, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
   const PRODUCTS = <?= json_encode($formattedProducts, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
   
-  // Database-backed wishlist state for current user[cite: 1]
+  // Database-backed wishlist state for current user
   let userWishlist = <?= json_encode($userWishlist, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
   const isLoggedIn = <?= $userId > 0 ? 'true' : 'false' ?>;
 
@@ -251,10 +289,8 @@ if (file_exists(__DIR__ . '/includes/top.php')) {
       showToast('Added to wishlist');
     }
 
-    // Refresh the counter badge on change
     updateWishlistCounter();
 
-    // Send request to backend API endpoint to update database table `wishlist` using absolute path
     fetch('admin/api/toggle_wishlist.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -264,8 +300,6 @@ if (file_exists(__DIR__ . '/includes/top.php')) {
     .then(data => {
       if (!data.success) {
         console.error('Failed to update database wishlist:', data.message);
-      } else {
-        console.log('Wishlist successfully synced to DB:', data.status);
       }
     })
     .catch(error => console.error('Error syncing wishlist network request:', error));
@@ -276,9 +310,9 @@ if (file_exists(__DIR__ . '/includes/top.php')) {
     if (!btn) return;
     const icon = btn.querySelector('i');
     if (isLiked) {
-      icon.className = "fa-solid fa-heart text-red-500 text-xs sm:text-sm";
+      icon.className = "fa-solid fa-heart text-red-500 text-xs";
     } else {
-      icon.className = "fa-regular fa-heart text-slate-400 hover:text-red-500 text-xs sm:text-sm";
+      icon.className = "fa-regular fa-heart text-slate-400 hover:text-red-500 text-xs";
     }
   }
 
@@ -287,42 +321,55 @@ if (file_exists(__DIR__ . '/includes/top.php')) {
     $("category-list").innerHTML = ["All Categories", ...CATEGORIES].map(c => {
       const active = c === state.cat;
       return `<button type="button" data-cat="${esc(c)}"
-        class="cat-btn shrink-0 text-left whitespace-nowrap px-4 py-2 lg:py-2.5 rounded-full lg:rounded-xl text-[13px] transition-colors
-        ${active ? "bg-slate-900 text-white font-bold" : "bg-slate-50 lg:bg-transparent text-slate-600 font-medium hover:bg-sky-50 hover:text-sky-700"}">${esc(c)}</button>`;
+        class="cat-btn shrink-0 text-left whitespace-nowrap px-3 py-1.5 sm:px-4 sm:py-2 lg:py-2.5 rounded-full lg:rounded-xl text-xs sm:text-[13px] transition-colors
+        ${active ? "bg-slate-900 text-white font-bold" : "bg-slate-100 lg:bg-transparent text-slate-600 font-medium hover:bg-sky-50 hover:text-sky-700"}">${esc(c)}</button>`;
     }).join("");
   }
 
-  // Generate Product Card Markup
+  // Generate Product Card Markup (Compact mobile layout fit for 2 columns)
   function cardHTML(p) {
-    const badgeHTML = p.off > 0 ? `<span class="absolute top-3 left-3 sm:top-4 sm:left-4 z-10 bg-sky-500 text-white text-[10px] sm:text-xs font-extrabold px-2.5 py-1 rounded-full">${p.off}% OFF</span>` : '';
-    const oldPriceHTML = p.old ? `<span class="text-[11px] sm:text-xs text-slate-400 line-through whitespace-nowrap">${fmt(p.old)}</span>` : '';
+    const badgeHTML = p.off > 0 ? `<span class="absolute top-2 left-2 z-10 bg-sky-500 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full">${p.off}% OFF</span>` : '';
+    const oldPriceHTML = p.old ? `<span class="text-[10px] text-slate-400 line-through">UGX ${fmt(p.old)}</span>` : '';
     
     const isLiked = userWishlist.includes(p.id);
     const heartClass = isLiked ? "fa-solid fa-heart text-red-500" : "fa-regular fa-heart text-slate-400 hover:text-red-500";
-
-    const ratingLabel = p.rating > 0 ? p.rating.toFixed(1) : 'New';
+    const ratingVal = p.rating > 0 ? p.rating.toFixed(1) : '4.5';
 
     return `
-    <article class="product-card relative flex flex-col bg-white rounded-2xl sm:rounded-3xl shadow-sm border border-slate-100 p-3 sm:p-4">
+    <article class="product-card relative flex flex-col bg-white rounded-2xl shadow-sm border border-slate-100 p-2.5 sm:p-3.5">
       ${badgeHTML}
-      <button type="button" data-id="${p.id}" class="like-btn absolute top-3 right-3 sm:top-4 sm:right-4 z-20 w-8 h-8 rounded-full bg-white/90 shadow-sm border border-slate-100 flex items-center justify-center transition-transform active:scale-90" aria-label="Save to wishlist">
-        <i class="${heartClass} text-xs sm:text-sm"></i>
+      <button type="button" data-id="${p.id}" class="like-btn absolute top-2 right-2 z-25 w-7 h-7 rounded-full bg-white shadow-sm border border-slate-100 flex items-center justify-center transition-transform active:scale-90" aria-label="Save to wishlist">
+        <i class="${heartClass} text-xs"></i>
       </button>
 
-      <a href="product/product-detail.php?id=${p.id}" data-id="${p.id}" class="product-link flex items-center justify-center h-32 sm:h-44 mb-3 sm:mb-4 overflow-hidden">
-        <img alt="${esc(p.name)}" class="max-h-full max-w-[85%] object-contain" loading="lazy" src="${esc(p.img)}"/>
+      <a href="product/product-detail.php?id=${p.id}" data-id="${p.id}" class="product-link flex items-center justify-center h-28 sm:h-44 bg-slate-50 rounded-xl mb-2 overflow-hidden p-2">
+        <img alt="${esc(p.name)}" class="max-h-full max-w-full object-contain mix-blend-multiply" loading="lazy" src="${esc(p.img)}"/>
       </a>
-      <a href="product/product-detail.php?id=${p.id}" data-id="${p.id}" class="product-link block text-[13px] sm:text-[15px] font-semibold text-slate-700 leading-snug line-clamp-2 min-h-[2.4rem] sm:min-h-[2.6rem] hover:text-sky-600 transition-colors">${esc(p.name)}</a>
-      <div class="flex items-center gap-1 mt-1 text-xs">
-        <i class="fa-solid fa-star text-amber-400 text-[11px]"></i>
-        <span class="font-bold text-slate-800">${ratingLabel}</span>
-        <span class="text-slate-400">(${p.reviews})</span>
+
+      <a href="product/product-detail.php?id=${p.id}" data-id="${p.id}" class="product-link block text-xs font-bold text-slate-900 leading-tight line-clamp-2 hover:text-sky-600 transition-colors min-h-[2.2rem]">${esc(p.name)}</a>
+      
+      <p class="text-[10px] text-slate-400 line-clamp-1 mt-0.5 mb-1">${esc(p.cat)}</p>
+
+      <div class="flex items-center gap-1 mb-2 text-[10px]">
+        <span class="font-bold text-slate-800">${ratingVal}</span>
+        <div class="flex text-amber-400 text-[9px]">
+          <i class="fa-solid fa-star"></i>
+          <i class="fa-solid fa-star"></i>
+          <i class="fa-solid fa-star"></i>
+          <i class="fa-solid fa-star"></i>
+          <i class="fa-solid fa-star-half-stroke"></i>
+        </div>
+        <span class="text-slate-400 text-[9px]">(${p.reviews})</span>
       </div>
-      <div class="flex items-end justify-between gap-2 mt-auto pt-2">
-        <div class="flex flex-wrap items-baseline gap-x-1.5 min-w-0">
-          <span class="text-[14px] sm:text-lg font-extrabold text-slate-900 whitespace-nowrap">UGX ${fmt(p.price)}</span>
-          <span class="text-[11px] text-slate-400 whitespace-nowrap">${esc(p.unit)}</span>
-          ${oldPriceHTML}
+
+      <div class="flex flex-col gap-1.5 mt-auto pt-1.5 border-t border-slate-50">
+        <div class="min-w-0">
+          <div class="flex items-center">
+            ${oldPriceHTML}
+          </div>
+          <div class="text-[11px] sm:text-xs font-extrabold text-slate-950 leading-tight truncate">
+            UGX ${fmt(p.price)} <span class="text-[9px] text-slate-400 font-normal">${esc(p.unit)}</span>
+          </div>
         </div>
         <button type="button" 
           data-id="${p.id}" 
@@ -330,12 +377,15 @@ if (file_exists(__DIR__ . '/includes/top.php')) {
           data-price="${p.price}" 
           data-img="${esc(p.img)}" 
           data-unit="${esc(p.unit)}"
-          aria-label="Add ${esc(p.name)} to cart" 
-          class="add-btn shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-sky-500 hover:bg-sky-600 text-white flex items-center justify-center transition-colors active:scale-95">
-          <i class="fa-solid fa-plus text-xs sm:text-sm"></i>
+          aria-label="Buy ${esc(p.name)}" 
+          class="add-btn w-full py-1.5 rounded-xl border border-slate-200 hover:border-sky-500 hover:bg-sky-50 active:scale-95 text-slate-700 text-[11px] font-bold transition-all text-center">
+          Buy now
         </button>
       </div>
     </article>`;
+
+
+
   }
 
   // Filter & Render Product Cards
@@ -380,7 +430,7 @@ if (file_exists(__DIR__ . '/includes/top.php')) {
 
     loadTimer = setTimeout(() => {
       renderProducts();
-    }, 1500);
+    }, 300);
   }
 
   // LocalStorage Cart Synchronization
@@ -422,7 +472,7 @@ if (file_exists(__DIR__ . '/includes/top.php')) {
     }, 2500);
   }
 
-  // Event Listeners
+  // Event Listeners for Filters & Sorting
   $("category-list").addEventListener("click", e => {
     const b = e.target.closest(".cat-btn");
     if (!b) return;
@@ -454,9 +504,38 @@ if (file_exists(__DIR__ . '/includes/top.php')) {
   $("reset-btn").addEventListener("click", resetAll);
   $("empty-reset").addEventListener("click", resetAll);
 
+  // Live Asynchronous Typing Search Integration
+  const searchInput = document.querySelector('input[name="q"]');
+  if (searchInput) {
+    let searchDebounceTimer = null;
+    searchInput.addEventListener('input', (e) => {
+      const keyword = e.target.value.trim();
+      if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+
+      searchDebounceTimer = setTimeout(() => {
+        $("loading-spinner").classList.remove("hidden");
+        $("grid").classList.add("hidden");
+
+        fetch(`admin/api/search_products.php?q=${encodeURIComponent(keyword)}`)
+          .then(res => res.json())
+          .then(data => {
+            $("loading-spinner").classList.add("hidden");
+            if (data.success) {
+              PRODUCTS.length = 0;
+              PRODUCTS.push(...data.products);
+              renderProducts();
+            }
+          })
+          .catch(err => {
+            console.error('Live search error:', err);
+            $("loading-spinner").classList.add("hidden");
+          });
+      }, 300);
+    });
+  }
+
   // Grid Event Delegation for Likes and Add-to-Cart
   $("grid").addEventListener("click", e => {
-    // 1. Tapping Like Button
     const likeBtn = e.target.closest(".like-btn");
     if (likeBtn) {
       e.preventDefault();
@@ -465,7 +544,6 @@ if (file_exists(__DIR__ . '/includes/top.php')) {
       return;
     }
 
-    // 2. Tapping Add to Cart Button
     const btn = e.target.closest(".add-btn");
     if (btn) {
       if (!isLoggedIn) {
@@ -484,13 +562,13 @@ if (file_exists(__DIR__ . '/includes/top.php')) {
       addToCart(productData);
       showToast('Added to cart successfully!');
 
-      const icon = btn.querySelector("i");
-      icon.className = "fa-solid fa-check text-xs sm:text-sm";
-      setTimeout(() => icon.className = "fa-solid fa-plus text-xs sm:text-sm", 900);
+      const originalText = btn.textContent;
+      btn.textContent = "Added ✓";
+      setTimeout(() => btn.textContent = originalText, 1000);
     }
   });
 
-  // Preselect Category from URL (e.g. ?cat=Supplements)
+  // Preselect Category from URL
   const urlCat = new URLSearchParams(location.search).get("cat");
   if (urlCat && (urlCat === "All Categories" || CATEGORIES.includes(urlCat))) {
     state.cat = urlCat;
@@ -499,6 +577,12 @@ if (file_exists(__DIR__ . '/includes/top.php')) {
   // Initializing count on page load
   updateWishlistCounter();
   triggerLoading();
+
+
+
 </script>
+
+
+
 </body>
 </html>

@@ -93,50 +93,84 @@ if ($pdo) {
 </div>
 
 <script>
+  const ORDER_API = 'api/approve_order.php';
+
   async function approveOrder(orderId) {
+    if (!confirm('Approve order #' + orderId + '? This marks payment as Completed.')) return;
+
     try {
-      const response = await fetch(window.location.href, {
+      const response = await fetch(ORDER_API, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'approve', order_number: orderId })
       });
-      const result = await response.json();
+
+      const text = await response.text();
+      let result;
+      try { result = JSON.parse(text); }
+      catch (e) { alert('Server returned non-JSON:\n' + text.slice(0, 300)); return; }
+
       if (result.success) {
-        alert('Order #' + orderId + ' successfully approved!');
+        // Update UI in place
         const statusCell = document.getElementById('status-' + orderId);
         if (statusCell) {
-          statusCell.className = "py-3.5 px-4 text-emerald-600 text-xs font-medium";
-          statusCell.textContent = "Completed";
+          statusCell.className = 'py-3.5 px-4 text-xs font-medium text-emerald-600';
+          statusCell.textContent = 'Completed';
         }
+        const row = document.getElementById('order-' + orderId);
+        const approveBtn = row ? row.querySelector('button') : null;
+        if (approveBtn) {
+          approveBtn.disabled = true;
+          approveBtn.classList.add('opacity-40', 'cursor-not-allowed');
+        }
+        showToast('Order #' + orderId + ' approved ✓', 'success');
       } else {
-        alert('Failed to approve order.');
+        alert('Failed to approve: ' + (result.error || 'Unknown error'));
       }
     } catch (err) {
-      console.error('Error approving order:', err);
+      console.error(err);
+      alert('Network error while approving order.');
     }
   }
 
   async function deleteOrder(orderId) {
-    if (confirm('Are you sure you want to delete order #' + orderId + '?')) {
-      try {
-        const response = await fetch(window.location.href, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'delete', order_number: orderId })
-        });
-        const result = await response.json();
-        if (result.success) {
-          const row = document.getElementById('order-' + orderId);
-          if (row) {
-            row.remove();
-            alert('Order #' + orderId + ' has been deleted.');
-          }
-        } else {
-          alert('Failed to delete order.');
+    if (!confirm('Delete order #' + orderId + '? This cannot be undone.')) return;
+
+    try {
+      const response = await fetch(ORDER_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', order_number: orderId })
+      });
+
+      const text = await response.text();
+      let result;
+      try { result = JSON.parse(text); }
+      catch (e) { alert('Server returned non-JSON:\n' + text.slice(0, 300)); return; }
+
+      if (result.success) {
+        const row = document.getElementById('order-' + orderId);
+        if (row) {
+          row.style.transition = 'opacity 0.3s';
+          row.style.opacity = '0';
+          setTimeout(() => row.remove(), 300);
         }
-      } catch (err) {
-        console.error('Error deleting order:', err);
+        showToast('Order #' + orderId + ' deleted', 'error');
+      } else {
+        alert('Failed to delete: ' + (result.error || 'Unknown error'));
       }
+    } catch (err) {
+      console.error(err);
+      alert('Network error while deleting order.');
     }
+  }
+
+  function showToast(msg, kind) {
+    const bg = kind === 'success' ? 'bg-emerald-600' : 'bg-rose-600';
+    const t = document.createElement('div');
+    t.className = `fixed bottom-6 right-6 z-[100] ${bg} text-white text-xs font-bold px-4 py-2.5 rounded-lg shadow-lg`;
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 3000);
   }
 </script>

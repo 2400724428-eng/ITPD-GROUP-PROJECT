@@ -1,140 +1,186 @@
 <?php
-session_start();
-require_once 'includes/db_connect.php'; // adjust path if needed
+$error = 'Something went wrong. Please try again.';
+require_once __DIR__ . '/includes/db_connect.php';
 
-// Must come from forgot-password flow
-if (empty($_SESSION['reset_email'])) {
-    header("Location: forgot-password.php");
-    exit;
+$error = '';
+$email = trim($_GET['email'] ?? $_POST['email'] ?? '');
+$token = trim($_GET['token'] ?? $_POST['token'] ?? '');
+
+// If a token was provided, look up the row to pre-fill email
+if ($token !== '') {
+    try {
+        $stmt = $pdo->prepare(
+            "SELECT * FROM puregain_password_resets
+             WHERE token_hash = :t AND consumed = 0 AND expires_at > NOW()
+             ORDER BY id DESC LIMIT 1"
+        );
+        $stmt->execute([':t' => hash('sha256', $token)]);
+        if ($row = $stmt->fetch()) $email = $row['email'];
+    } catch (Throwable $e) { /* ignore */ }
 }
 
-$email = $_SESSION['reset_email'];
-$errors = [];
-$success = false;
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $pin            = trim($_POST['pin'] ?? '');
-    $new_password   = $_POST['new_password'] ?? '';
-    $confirm_password = $_POST['confirm_password'] ?? '';
+    $code        = strtoupper(trim($_POST['code'] ?? ''));
+    $new         = $_POST['new_password'] ?? '';
+    $confirm     = $_POST['confirm_password'] ?? '';
 
-    // Basic validation
-    if (empty($pin) || !preg_match('/^\d{6}$/', $pin)) {
-        $errors[] = "Please enter a valid 6-digit PIN.";
-    }
-    if (strlen($new_password) < 8) {
-        $errors[] = "Password must be at least 8 characters.";
-    }
-    if ($new_password !== $confirm_password) {
-        $errors[] = "New password and confirmation do not match.";
-    }
+    $errors = [];
+    if ($code === '')                     $errors[] = 'Enter the reset code.';
+    if (strlen($new) < 8)                 $errors[] = 'New password must be at least 8 characters.';
+    if ($new !== $confirm)                $errors[] = 'Passwords do not match.';
 
-    if (empty($errors)) {
-        // Get the latest valid token for this email
-        $stmt = $pdo->prepare(
-            "SELECT id, token_hash, expires_at 
-             FROM password_resets 
-             WHERE email = ? 
-             ORDER BY created_at DESC 
-             LIMIT 1"
-        );
-        $stmt->execute([$email]);
-        $reset = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$errors) {
+        try {
+            // 1. Verify the code against the reset table
+            $stmt = $pdo->prepare(
+                "SELECT * FROM puregain_password_resets
+                 WHERE email = :e AND short_code_hash = :h
+                   AND consumed = 0 AND expires_at > NOW()
+                 ORDER BY id DESC LIMIT 1"
+            );
+            $stmt->execute([':e' => $email, ':h' => hash('sha256', $code)]);
+            $reset = $stmt->fetch();
 
-        if (!$reset) {
-            $errors[] = "No reset request found. Please request a new PIN.";
-        } elseif (strtotime($reset['expires_at']) < time()) {
-            $errors[] = "This PIN has expired. Please request a new one.";
-        } elseif (!password_verify($pin, $reset['token_hash'])) {
-            $errors[] = "Incorrect PIN. Please check your email and try again.";
-        } else {
-            // All good → update password
-            $new_hash = password_hash($new_password, PASSWORD_DEFAULT);
+            if (!$reset) {
+                $errors[] = 'Invalid or expired reset code.';
+            } else {
+                // 2. Find the user by email in the `users` table
+                $ustmt = $pdo->prepare("SELECT id FROM users WHERE email = :e LIMIT 1");
+                $ustmt->execute([':e' => $email]);
+                $u = $ustmt->fetch();
 
-            $stmt = $pdo->prepare("UPDATE users SET password_hash = ? WHERE email = ?");
-            $stmt->execute([$new_hash, $email]);
+                if (!$u) {
+                    $errors[] = 'No account matches that email.';
+                } else {
+                    // 3. Update the password (column `password_hash`, key `id`)
+                    $pdo->prepare("UPDATE users SET password_hash = :h WHERE id = :id")
+                        ->execute([
+                            ':h'  => password_hash($new, PASSWORD_DEFAULT),
+                            ':id' => (int) $u['id'],
+                        ]);
 
-            // Invalidate the used PIN
-            $pdo->prepare("DELETE FROM password_resets WHERE email = ?")->execute([$email]);
+                    // 4. Mark all codes for this email consumed
+                    $pdo->prepare("UPDATE puregain_password_resets SET consumed = 1 WHERE email = :e")
+                        ->execute([':e' => $email]);
 
-            // Clear session
-            unset($_SESSION['reset_email']);
+                    // 5. Invalidate active sessions for safety
+                    try {
+                        $pdo->prepare("DELETE FROM user_sessions WHERE user_id = :id")
+                            ->execute([':id' => (int) $u['id']]);
+                    } catch (Throwable $e) { /* table may not exist */ }
 
-            $success = true;
+                    header('Location: login.php?reset=1');
+                    exit;
+                }
+            }
+        } catch (Throwable $e) {
+            error_log('[reset-password] ' . $e->getMessage());
+            $errors[] = 'Something went wrong. Please try again.';
         }
     }
+
+    if ($errors) $error = implode(' ', $errors);
 }
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reset Password – Pure Gain</title>
-    <link href="./src/output.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>body{font-family:'Plus Jakarta Sans',sans-serif}</style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Reset Password - PURE GAIN</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+    tailwind.config = { theme: { extend: {
+        fontFamily: { sans: ['Plus Jakarta Sans', 'Inter', 'sans-serif'] },
+        colors: { brand: { navy: '#1e3a8a' } }
+    }}}
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-font-smoothing: antialiased;
+           background-color: #f8fafc; position: relative; isolation: isolate; overflow-x: hidden; min-height: 100vh; }
+    body::before { content:""; position: absolute; z-index: -1; top: -35%; right: -10%; width: 75%; height: 145%;
+        background: radial-gradient(ellipse at 72% 30%, rgba(96,165,250,0.4) 0%, rgba(147,197,253,0.25) 30%, rgba(219,234,254,0.1) 52%, transparent 75%);
+        border-radius: 50% 0 0 50%; transform: rotate(-12deg); pointer-events: none; }
+    body::after { content:""; position: absolute; z-index: -1; right: -12%; bottom: -20%; width: 100%; height: 85%;
+        background: linear-gradient(125deg, rgba(219,234,254,0.8) 0%, rgba(147,197,253,0.8) 28%, rgba(59,130,246,0.8) 62%, rgba(29,78,216,0.9) 100%);
+        border-radius: 55% 0 0 0; transform: rotate(-8deg); pointer-events: none; }
+    .card-gradient { position: relative; isolation: isolate; background: rgba(255,255,255,0.85);
+                     backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+</style>
 </head>
-<body class="bg-slate-50 min-h-screen flex items-center justify-center p-4">
+<body class="text-slate-800 antialiased grid place-items-center p-4 sm:p-6">
 
-<div class="w-full max-w-md bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+<div class="card-gradient w-full max-w-[460px] rounded-[2rem] shadow-[0_25px_60px_-15px_rgba(30,64,175,0.3)] border border-white/60 overflow-hidden relative z-10">
 
-    <?php if ($success): ?>
-        <div class="text-center">
-            <div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">✓</div>
-            <h1 class="text-2xl font-bold text-slate-900 mb-2">Password Updated!</h1>
-            <p class="text-slate-600 text-sm mb-6">You can now log in with your new password.</p>
-            <a href="login.php"
-               class="inline-block w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl transition text-center">
-                Go to Login
+    <div class="p-8 text-center relative border-b border-white/40">
+        <div class="absolute top-5 left-5 z-10">
+            <a href="login.php" class="text-brand-navy/60 hover:text-brand-navy transition-colors flex items-center gap-1.5 text-xs font-semibold tracking-wide">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                BACK
             </a>
         </div>
-    <?php else: ?>
+        <div class="relative z-10 mt-4">
+            <div class="w-16 h-16 bg-white/80 shadow-sm border border-white rounded-2xl mx-auto flex items-center justify-center mb-4 overflow-hidden p-2">
+                <img src="assets/images/fav.png" alt="Logo" class="w-full h-full object-cover rounded-xl">
+            </div>
+            <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Set New Password</h1>
+            <p class="text-slate-600 text-sm mt-1.5 font-medium">Enter your reset code and choose a new password.</p>
+        </div>
+    </div>
 
-        <h1 class="text-2xl font-bold text-slate-900 mb-2">Reset Password</h1>
-        <p class="text-slate-600 text-sm mb-6">
-            Enter the 6-digit PIN sent to <strong><?= htmlspecialchars($email) ?></strong>
-        </p>
+    <div class="p-8 relative z-10 bg-white/30">
 
-        <?php if (!empty($errors)): ?>
-            <div class="mb-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg">
-                <?= htmlspecialchars($errors[0]) ?>
+        <?php if ($error): ?>
+            <div class="mb-4 text-sm text-red-700 bg-red-100/80 border border-red-200 rounded-lg px-3 py-2">
+                <?= htmlspecialchars($error) ?>
             </div>
         <?php endif; ?>
 
-        <form method="POST" action="">
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-slate-700 mb-1.5">6-digit PIN</label>
-                <input type="text" name="pin" maxlength="6" required
-                       class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none tracking-widest text-center text-lg"
-                       placeholder="••••••"
-                       inputmode="numeric" pattern="\d{6}">
+        <form method="POST" class="space-y-4">
+            <input type="hidden" name="email" value="<?= htmlspecialchars($email) ?>">
+            <input type="hidden" name="token" value="<?= htmlspecialchars($token) ?>">
+
+            <div>
+                <label class="block text-sm font-semibold text-slate-800 mb-2">Email</label>
+                <input type="email" name="email_display" value="<?= htmlspecialchars($email) ?>" disabled
+                    class="w-full px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl text-slate-600 text-sm font-medium cursor-not-allowed">
             </div>
 
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-slate-700 mb-1.5">New Password</label>
+            <div>
+                <label class="block text-sm font-semibold text-slate-800 mb-2">Reset Code</label>
+                <input type="text" name="code" required maxlength="8"
+                    value="<?= htmlspecialchars($_POST['code'] ?? '') ?>"
+                    class="w-full px-4 py-3 bg-white/90 border border-white/50 rounded-xl focus:outline-none focus:bg-white focus:border-brand-navy focus:ring-2 focus:ring-brand-navy/20 transition-all text-slate-800 font-bold text-lg tracking-[0.35em] text-center uppercase placeholder:text-slate-300 placeholder:font-normal placeholder:tracking-normal"
+                    placeholder="ENTER CODE">
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-slate-800 mb-2">New Password</label>
                 <input type="password" name="new_password" required minlength="8"
-                       class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
-                       placeholder="At least 8 characters">
+                    class="w-full px-4 py-3 bg-white/90 border border-white/50 rounded-xl focus:outline-none focus:bg-white focus:border-brand-navy focus:ring-2 focus:ring-brand-navy/20 transition-all text-slate-800 font-medium text-sm"
+                    placeholder="At least 8 characters">
             </div>
 
-            <div class="mb-6">
-                <label class="block text-sm font-medium text-slate-700 mb-1.5">Confirm New Password</label>
+            <div>
+                <label class="block text-sm font-semibold text-slate-800 mb-2">Confirm New Password</label>
                 <input type="password" name="confirm_password" required minlength="8"
-                       class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
-                       placeholder="Repeat new password">
+                    class="w-full px-4 py-3 bg-white/90 border border-white/50 rounded-xl focus:outline-none focus:bg-white focus:border-brand-navy focus:ring-2 focus:ring-brand-navy/20 transition-all text-slate-800 font-medium text-sm"
+                    placeholder="Re-enter new password">
             </div>
 
             <button type="submit"
-                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl transition">
+                class="w-full bg-brand-navy text-white font-bold text-sm py-3.5 rounded-xl hover:bg-blue-900 hover:shadow-lg hover:shadow-brand-navy/30 active:scale-[0.98] transition-all duration-200 mt-2">
                 Reset Password
             </button>
         </form>
 
-        <p class="mt-6 text-center text-sm text-slate-500">
-            <a href="forgot-password.php" class="text-blue-600 hover:underline">Request a new PIN</a>
-        </p>
-    <?php endif; ?>
-
+        <div class="mt-6 text-center">
+            <a href="forgot-password.php" class="text-xs font-semibold text-slate-600 hover:text-brand-navy">
+                Didn't get a code? Start over
+            </a>
+        </div>
+    </div>
 </div>
 
 </body>

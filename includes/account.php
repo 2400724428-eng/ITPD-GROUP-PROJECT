@@ -4,8 +4,8 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 $isLoggedIn = isset($_SESSION['user_id']);
-$userName   = $isLoggedIn ? $_SESSION['full_name'] : 'Guest User';
-$userEmail  = $isLoggedIn ? $_SESSION['email'] : 'Sign in to manage portal';
+$userName   = $isLoggedIn ? ($_SESSION['full_name'] ?? 'Guest User') : 'Guest User';
+$userEmail  = $isLoggedIn ? ($_SESSION['email'] ?? 'Sign in to manage portal') : 'Sign in to manage portal';
 $rawPhoto   = $isLoggedIn ? ($_SESSION['profile_photo'] ?? '') : '';
 
 $hasValidPhoto = !empty($rawPhoto) && $rawPhoto !== 'uploads/avatars/default-avatar.png';

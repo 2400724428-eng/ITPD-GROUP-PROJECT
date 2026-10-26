@@ -9,8 +9,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_once __DIR__ . '/includes/db_connect.php';
 
     try {
-        // Ensure $pdo is available from db_connect.php or instantiate if needed
-        if (!isset($pdo)) {$pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8mb4", $user,$pass, [
+        if (!isset($pdo)) {
+            $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8mb4", $user, $pass, [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
             ]);
         }
@@ -22,37 +22,80 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
-        // Capture user_id dynamically from incoming payload or fallback to active session
-        $userId = isset($data['user_id']) && !empty($data['user_id']) ? intval($data['user_id']) : ($_SESSION['user_id'] ?? null);
-        
-        $totalAmount = floatval($data['total_amount']);$paymentMethod = 'WhatsApp';
-        $paymentStatus = 'Pending';$addressInfo = $data['address'] ?? [];$shippingAddress = sprintf(
+        $userId = isset($data['user_id']) && !empty($data['user_id'])
+            ? intval($data['user_id'])
+            : ($_SESSION['user_id'] ?? null);
+
+        $totalAmount   = floatval($data['total_amount'] ?? 0);
+        $paymentMethod = 'WhatsApp';
+        $paymentStatus = 'Pending';
+
+        $addressInfo = $data['address'] ?? [];
+        $shippingAddress = sprintf(
             "%s %s, %s, %s, Phone: %s",
             $addressInfo['firstName'] ?? '',
-            $addressInfo['lastName'] ?? '',$addressInfo['street'] ?? '',
-            $addressInfo['city'] ?? '',$addressInfo['phone'] ?? ''
+            $addressInfo['lastName'] ?? '',
+            $addressInfo['street'] ?? '',
+            $addressInfo['city'] ?? '',
+            $addressInfo['phone'] ?? ''
         );
+
+        $items = is_array($data['items'] ?? null) ? $data['items'] : [];
 
         $orderNumber = 'PG-' . strtoupper(substr(uniqid(), -5));
 
-        $stmt =$pdo->prepare("
-            INSERT INTO `orders` 
-            (`order_number`, `user_id`, `total_amount`, `payment_method`, `payment_status`, `shipping_address`, `created_at`, `updated_at`) 
+        // -------- BEGIN TRANSACTION (order + items together) --------
+        $pdo->beginTransaction();
+
+        $stmt = $pdo->prepare("
+            INSERT INTO `orders`
+            (`order_number`, `user_id`, `total_amount`, `payment_method`, `payment_status`, `shipping_address`, `created_at`, `updated_at`)
             VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
         ");
-
         $stmt->execute([
-            $orderNumber,$userId,
-            $totalAmount,$paymentMethod,
-            $paymentStatus,$shippingAddress
+            $orderNumber,
+            $userId,
+            $totalAmount,
+            $paymentMethod,
+            $paymentStatus,
+            $shippingAddress
         ]);
 
+        $orderId = (int)$pdo->lastInsertId();
+
+        // -------- SAVE PER-PRODUCT LINE ITEMS --------
+        if (!empty($items) && $orderId > 0) {
+            $itemStmt = $pdo->prepare("
+                INSERT INTO `order_items`
+                (`order_id`, `product_id`, `quantity`, `unit_price`)
+                VALUES (?, ?, ?, ?)
+            ");
+
+            foreach ($items as $it) {
+                $productId = (int)($it['id'] ?? 0);
+                $qty       = (int)($it['quantity'] ?? 1);
+                $price     = (float)($it['price'] ?? 0);
+
+                // Skip anything without a valid product ID
+                if ($productId <= 0 || $qty <= 0) continue;
+
+                $itemStmt->execute([$orderId, $productId, $qty, $price]);
+            }
+        }
+
+        $pdo->commit();
+
         echo json_encode([
-            'success' => true,
-            'order_number' => $orderNumber
+            'success'      => true,
+            'order_number' => $orderNumber,
+            'order_id'     => $orderId,
+            'item_count'   => count($items)
         ]);
 
     } catch (Exception $e) {
+        if (isset($pdo) && $pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
         echo json_encode(['success' => false, 'error' => $e->getMessage()]);
     }
     exit;
@@ -63,26 +106,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<meta content="web_standard" name="shell-type"/>
 <title>Checkout | PURE GAIN</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+
+<script src="https://cdn.tailwindcss.com"></script>
+
 <style>
-  html, body { 
-    margin: 0; 
-    padding: 0; 
-    width: 100%; 
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
     height: 100%;
     overflow-x: hidden;
-    overflow-y: auto !important;
+    background-color: #f8f9ff;
   }
-  body { 
+  body {
     -webkit-overflow-scrolling: touch;
+    font-family: 'Plus Jakarta Sans', sans-serif;
   }
   ::-webkit-scrollbar { display: none; }
   .checkout-step { display: none; }
   .checkout-step.active { display: block; }
+
   @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
@@ -90,108 +137,128 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   .animate-spin-custom {
     animation: spin 1s linear infinite;
   }
+
+  .hero-gradient {
+    background: linear-gradient(135deg, #eff4ff 0%, #dbe1ff 100%);
+  }
 </style>
-<script src="https://cdn.tailwindcss.com"></script>
-<script id="tailwind-config">
-tailwind.config={"darkMode":"class","theme":{"extend":{"colors":{"inverse-surface":"#213145","outline-variant":"#c3c6d7","secondary-fixed-dim":"#bcc7de","surface":"#f8f9ff","secondary":"#545f73","on-primary-container":"#eeefff","error-container":"#ffdad6","tertiary-container":"#007b71","secondary-container":"#d5e0f8","surface-container-low":"#eff4ff","on-secondary-container":"#586377","surface-tint":"#0053db","on-secondary":"#ffffff","primary-fixed":"#dbe1ff","tertiary-fixed-dim":"#6bd8cb","primary":"#004ac6","surface-dim":"#cbdbf5","error":"#ba1a1a","primary-container":"#2563eb","on-tertiary":"#ffffff","on-tertiary-container":"#b3fff3","on-background":"#0b1c30","on-primary-fixed":"#00174b","outline":"#737686","on-error-container":"#93000a","surface-container":"#e5eeff","surface-variant":"#d3e4fe","inverse-primary":"#b4c5ff","surface-bright":"#f8f9ff","surface-container-high":"#dce9ff","surface-container-lowest":"#ffffff","on-primary-fixed-variant":"#003ea8","on-error":"#ffffff","on-tertiary-fixed-variant":"#005049","on-tertiary-fixed":"#00201d","background":"#f8f9ff","tertiary":"#006058","on-surface":"#0b1c30","on-surface-variant":"#434655","surface-container-highest":"#d3e4fe","secondary-fixed":"#d8e3fb","on-secondary-fixed-variant":"#3c475a","on-secondary-fixed":"#111c2d","on-primary":"#ffffff","tertiary-fixed":"#89f5e7","inverse-on-surface":"#eaf1ff","primary-fixed-dim":"#b4c5ff"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"fontFamily":{"display-lg-mobile":["Plus Jakarta Sans"],"label-lg":["Inter"],"body-sm":["Plus Jakarta Sans"],"body-md":["Plus Jakarta Sans"],"label-md":["Inter"],"headline-lg":["Plus Jakarta Sans"],"label-sm":["Inter"],"headline-sm":["Plus Jakarta Sans"],"headline-lg-mobile":["Plus Jakarta Sans"],"body-lg":["Plus Jakarta Sans"],"headline-md":["Plus Jakarta Sans"],"display-lg":["Plus Jakarta Sans"]}}}};</script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        primary: '#004ac6',
+        'primary-container': '#2563eb',
+        'surface-container-lowest': '#ffffff',
+        'surface-container-low': '#eff4ff',
+        'on-surface': '#0b1c30',
+        'on-surface-variant': '#434655',
+        'outline-variant': '#c3c6d7',
+        'tertiary': '#007b71',
+      },
+      fontFamily: {
+        display: ['"Plus Jakarta Sans"', 'sans-serif'],
+        body: ['"Plus Jakarta Sans"', 'sans-serif'],
+      }
+    }
+  }
+}
+</script>
 </head>
-<body class="bg-surface font-body-md text-on-surface antialiased min-h-screen flex flex-col">
+<body class="font-body text-on-surface antialiased min-h-screen flex flex-col">
 
-<main class="w-full pt-3 sm:pt-6 bg-surface pb-32 flex-grow">
-  <div class="flex flex-col w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+ <?php include 'includes/searchtop.php'; ?>
 
-    <!-- Super Responsive Step Progress Bar -->
-    <div class="bg-surface-container-lowest rounded-xl p-4 sm:p-6 shadow-sm mb-6 overflow-x-auto no-scrollbar flex-shrink-0">
+<main class="w-full flex-grow pb-20">
+
+  <div class="hero-gradient pt-10 pb-16 border-b border-white/50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <h1 class="text-3xl sm:text-4xl font-extrabold text-primary tracking-tight mb-2">Your Cart</h1>
+      <p class="text-on-surface-variant text-base">Review your items and proceed to secure checkout.</p>
+    </div>
+  </div>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10">
+
+    <div class="bg-white rounded-2xl p-4 sm:p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-8 overflow-x-auto no-scrollbar flex-shrink-0 border border-gray-100">
       <div class="flex items-center justify-between min-w-[320px] max-w-3xl mx-auto">
-        <!-- Step 1 -->
         <div class="flex flex-col items-center cursor-pointer flex-shrink-0" onclick="goToStep(1)">
-          <div id="indicator-1" class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-md transition-all">
+          <div id="indicator-1" class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary text-white flex items-center justify-center shadow-md transition-all">
             <span class="material-symbols-outlined text-[18px] sm:text-[20px]">shopping_cart</span>
           </div>
-          <span id="label-1" class="font-label-md text-xs sm:text-sm font-bold mt-1.5 text-primary">Cart</span>
+          <span id="label-1" class="font-bold text-xs sm:text-sm mt-2 text-primary">Cart</span>
         </div>
-        <div class="flex-1 h-[2px] bg-outline-variant mx-1 sm:mx-2"></div>
+        <div class="flex-1 h-[2px] bg-gray-200 mx-2 sm:mx-4"></div>
 
-        <!-- Step 2 -->
         <div class="flex flex-col items-center cursor-pointer flex-shrink-0" onclick="goToStep(2)">
-          <div id="indicator-2" class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-surface-container-high text-outline flex items-center justify-center transition-all">
+          <div id="indicator-2" class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center transition-all">
             <span class="material-symbols-outlined text-[18px] sm:text-[20px]">location_on</span>
           </div>
-          <span id="label-2" class="font-label-md text-xs sm:text-sm mt-1.5 text-outline">Address</span>
+          <span id="label-2" class="font-bold text-xs sm:text-sm mt-2 text-blue-600">Address</span>
         </div>
-        <div class="flex-1 h-[2px] bg-outline-variant mx-1 sm:mx-2"></div>
+        <div class="flex-1 h-[2px] bg-gray-200 mx-2 sm:mx-4"></div>
 
-        <!-- Step 3 -->
         <div class="flex flex-col items-center cursor-pointer flex-shrink-0" onclick="goToStep(3)">
-          <div id="indicator-3" class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-surface-container-high text-outline flex items-center justify-center transition-all">
+          <div id="indicator-3" class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center transition-all">
             <span class="material-symbols-outlined text-[18px] sm:text-[20px]">credit_card</span>
           </div>
-          <span id="label-3" class="font-label-md text-xs sm:text-sm mt-1.5 text-outline">Payment</span>
+          <span id="label-3" class="font-bold text-xs sm:text-sm mt-2 text-blue-600">Payment</span>
         </div>
-        <div class="flex-1 h-[2px] bg-outline-variant mx-1 sm:mx-2"></div>
+        <div class="flex-1 h-[2px] bg-gray-200 mx-2 sm:mx-4"></div>
 
-        <!-- Step 4 -->
         <div class="flex flex-col items-center cursor-pointer flex-shrink-0" onclick="goToStep(4)">
-          <div id="indicator-4" class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-surface-container-high text-outline flex items-center justify-center transition-all">
+          <div id="indicator-4" class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center transition-all">
             <span class="material-symbols-outlined text-[18px] sm:text-[20px]">check</span>
           </div>
-          <span id="label-4" class="font-label-md text-xs sm:text-sm mt-1.5 text-outline">Done</span>
+          <span id="label-4" class="font-bold text-xs sm:text-sm mt-2 text-blue-600">Done</span>
         </div>
       </div>
     </div>
 
-    <!-- ==================== SCREEN 1: CART ==================== -->
     <div id="step-1" class="checkout-step active">
-      <div class="flex flex-col sm:flex-row sm:items-end justify-between pb-4 sm:pb-6 gap-2">
-        <div>
-          <span class="font-label-sm text-primary tracking-widest uppercase mb-1 block">Pure Gain Bag</span>
-          <h1 class="text-2xl sm:text-3xl font-extrabold text-on-surface tracking-tight">Your Shopping Cart</h1>
-          <p id="cart-subtitle" class="font-body-md text-on-surface-variant text-sm sm:text-base">Loading items...</p>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        <div class="lg:col-span-8 flex flex-col gap-4">
-          <!-- Dynamic Items Injected Here -->
-        </div>
-        <div class="lg:col-span-4 flex flex-col gap-4 lg:sticky lg:top-6">
-          <!-- Dynamic Summary Injected Here -->
-        </div>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div class="lg:col-span-8 flex flex-col gap-4"></div>
+        <div class="lg:col-span-4 flex flex-col gap-4 lg:sticky lg:top-6"></div>
       </div>
     </div>
 
-    <!-- ==================== SCREEN 2: ADDRESS ==================== -->
     <div id="step-2" class="checkout-step">
-      <div class="max-w-2xl mx-auto bg-surface-container-lowest rounded-xl p-4 sm:p-8 shadow-sm">
-        <h2 class="text-xl sm:text-2xl font-bold text-on-surface mb-4">Shipping Address</h2>
-        <form id="address-form" class="space-y-4" onsubmit="event.preventDefault(); saveAddressAndContinue();">
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="max-w-2xl mx-auto bg-white rounded-2xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
+        <div class="flex items-center gap-3 mb-6 border-b border-gray-100 pb-4">
+            <div class="w-10 h-10 rounded-full bg-blue-100 text-primary flex items-center justify-center">
+                <span class="material-symbols-outlined">location_on</span>
+            </div>
+            <h2 class="text-xl sm:text-2xl font-bold text-on-surface">Shipping Address</h2>
+        </div>
+
+        <form id="address-form" class="space-y-5" onsubmit="event.preventDefault(); saveAddressAndContinue();">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div>
-              <label class="font-label-sm text-on-surface-variant block mb-1">First Name</label>
-              <input type="text" id="addr-firstname" required class="w-full h-12 px-4 bg-surface-container-low rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm" placeholder="John"/>
+              <label class="text-sm font-semibold text-on-surface-variant block mb-1.5">First Name</label>
+              <input type="text" id="addr-firstname" required class="w-full h-12 px-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all" placeholder="John"/>
             </div>
             <div>
-              <label class="font-label-sm text-on-surface-variant block mb-1">Last Name</label>
-              <input type="text" id="addr-lastname" required class="w-full h-12 px-4 bg-surface-container-low rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm" placeholder="Doe"/>
+              <label class="text-sm font-semibold text-on-surface-variant block mb-1.5">Last Name</label>
+              <input type="text" id="addr-lastname" required class="w-full h-12 px-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all" placeholder="Doe"/>
             </div>
           </div>
           <div>
-            <label class="font-label-sm text-on-surface-variant block mb-1">Street Address</label>
-            <input type="text" id="addr-street" required class="w-full h-12 px-4 bg-surface-container-low rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm" placeholder="Plot 12 Jinja Road"/>
+            <label class="text-sm font-semibold text-on-surface-variant block mb-1.5">Street Address</label>
+            <input type="text" id="addr-street" required class="w-full h-12 px-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all" placeholder="Plot 12 Jinja Road"/>
           </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div>
-              <label class="font-label-sm text-on-surface-variant block mb-1">City</label>
-              <input type="text" id="addr-city" required class="w-full h-12 px-4 bg-surface-container-low rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm" placeholder="Kampala"/>
+              <label class="text-sm font-semibold text-on-surface-variant block mb-1.5">City</label>
+              <input type="text" id="addr-city" required class="w-full h-12 px-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all" placeholder="Kampala"/>
             </div>
             <div>
-              <label class="font-label-sm text-on-surface-variant block mb-1">Phone Number</label>
-              <input type="tel" id="addr-phone" required class="w-full h-12 px-4 bg-surface-container-low rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm" placeholder="+256 700 000 000"/>
+              <label class="text-sm font-semibold text-on-surface-variant block mb-1.5">Phone Number</label>
+              <input type="tel" id="addr-phone" required class="w-full h-12 px-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm transition-all" placeholder="+256 700 000 000"/>
             </div>
           </div>
-          <div class="flex flex-col-reverse sm:flex-row justify-between gap-3 pt-4">
-            <button type="button" onclick="goToStep(1)" class="w-full sm:w-auto h-12 px-6 bg-surface-container-low text-on-surface rounded-lg font-label-lg hover:bg-surface-container-high transition-colors">Back to Cart</button>
-            <button type="submit" class="w-full sm:w-auto h-12 px-6 bg-primary text-on-primary rounded-lg font-label-lg flex items-center justify-center gap-2 shadow-md hover:bg-primary-container transition-all">
+          <div class="flex flex-col-reverse sm:flex-row justify-between gap-3 pt-6 mt-2 border-t border-gray-100">
+            <button type="button" onclick="goToStep(1)" class="w-full sm:w-auto h-12 px-6 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors">Back to Cart</button>
+            <button type="submit" class="w-full sm:w-auto h-12 px-8 bg-primary text-white rounded-xl font-semibold flex items-center justify-center gap-2 shadow-md hover:bg-blue-700 transition-all">
               <span>Continue to Payment</span>
               <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
             </button>
@@ -200,19 +267,18 @@ tailwind.config={"darkMode":"class","theme":{"extend":{"colors":{"inverse-surfac
       </div>
     </div>
 
-    <!-- ==================== SCREEN 3: WHATSAPP CHECKOUT ==================== -->
     <div id="step-3" class="checkout-step">
       <div class="max-w-2xl mx-auto overflow-hidden bg-white rounded-2xl shadow-xl border border-gray-100">
-        <div class="relative overflow-hidden bg-gradient-to-br from-green-700 via-green-600 to-emerald-500 px-6 py-8 sm:px-10 sm:py-10 text-white">
+        <div class="relative overflow-hidden bg-gradient-to-br from-green-600 to-emerald-500 px-6 py-8 sm:px-10 sm:py-10 text-white">
             <div class="absolute -right-12 -top-12 w-48 h-48 rounded-full bg-white/10"></div>
             <div class="absolute -right-4 -bottom-16 w-36 h-36 rounded-full bg-white/10"></div>
             <div class="relative z-10 flex items-center gap-4">
-                <div class="w-16 h-16 flex-shrink-0 flex items-center justify-center rounded-2xl bg-white/20 border border-white/30 shadow-lg">
+                <div class="w-16 h-16 flex-shrink-0 flex items-center justify-center rounded-2xl bg-white/20 border border-white/30 shadow-lg backdrop-blur-sm">
                     <i class="fa-brands fa-whatsapp text-4xl"></i>
                 </div>
                 <div>
                     <span class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-green-100 mb-2">
-                        <span class="w-2 h-2 rounded-full bg-green-300"></span>
+                        <span class="w-2 h-2 rounded-full bg-green-300 animate-pulse"></span>
                         Secure Order Assistance
                     </span>
                     <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight">Complete Your Purchase</h2>
@@ -254,9 +320,8 @@ tailwind.config={"darkMode":"class","theme":{"extend":{"colors":{"inverse-surfac
       </div>
     </div>
 
-    <!-- ==================== SCREEN 4: CONFIRMATION / PROCESSING ==================== -->
     <div id="step-4" class="checkout-step">
-      <div class="max-w-xl mx-auto bg-surface-container-lowest rounded-xl p-6 sm:p-10 shadow-sm text-center">
+      <div class="max-w-xl mx-auto bg-white rounded-2xl p-6 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 text-center">
         <div id="order-loading-state" class="py-6">
           <div class="w-20 h-20 border-4 border-primary border-t-transparent rounded-full animate-spin-custom mx-auto mb-6"></div>
           <h2 class="text-2xl sm:text-3xl font-bold text-on-surface mb-2">Processing Order...</h2>
@@ -269,12 +334,12 @@ tailwind.config={"darkMode":"class","theme":{"extend":{"colors":{"inverse-surfac
           </div>
           <h2 class="text-2xl sm:text-3xl font-bold text-on-surface mb-2">Order Approved!</h2>
           <p class="font-body-md text-on-surface-variant text-sm sm:text-base mb-6">Your order has been approved and saved. Opening WhatsApp to complete your checkout...</p>
-          <div class="bg-surface-container-low p-4 rounded-lg text-left mb-6 space-y-2 text-sm">
+          <div class="bg-surface-container-low p-4 rounded-lg text-left mb-6 space-y-2 text-sm border border-gray-100">
             <div class="flex justify-between"><span class="text-outline">Order ID:</span><span id="order-id" class="font-bold">#PG-89421</span></div>
             <div class="flex justify-between"><span class="text-outline">Status:</span><span class="font-bold text-green-600">Pending</span></div>
             <div class="flex justify-between"><span class="text-outline">Total Amount:</span><span id="confirm-total" class="font-bold text-primary">UGX 0</span></div>
           </div>
-          <button onclick="clearAndReturn()" class="w-full h-12 bg-primary text-on-primary rounded-lg font-label-lg hover:bg-primary-container transition-all shadow-md">Return to Shop</button>
+          <button onclick="clearAndReturn()" class="w-full h-12 bg-primary text-white rounded-xl font-semibold hover:bg-blue-700 transition-all shadow-md">Return to Shop</button>
         </div>
       </div>
     </div>
@@ -318,17 +383,17 @@ tailwind.config={"darkMode":"class","theme":{"extend":{"colors":{"inverse-surfac
       const icon = (name) => `<span class="material-symbols-outlined text-[18px] sm:text-[20px]">${name}</span>`;
 
       if (i < stepNumber) {
-        indicator.className = "w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-tertiary text-on-tertiary flex items-center justify-center shadow-md transition-all";
+        indicator.className = "w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary text-white flex items-center justify-center shadow-md transition-all";
         indicator.innerHTML = icon('check');
-        label.className = "font-label-md text-xs sm:text-sm mt-1.5 text-tertiary";
+        label.className = "font-bold text-xs sm:text-sm mt-2 text-primary";
       } else if (i === stepNumber) {
-        indicator.className = "w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-md transition-all";
+        indicator.className = "w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary text-white flex items-center justify-center shadow-md ring-4 ring-blue-100 transition-all";
         indicator.innerHTML = icon(STEP_ICONS[i]);
-        label.className = "font-label-md text-xs sm:text-sm font-bold mt-1.5 text-primary";
+        label.className = "font-bold text-xs sm:text-sm mt-2 text-primary";
       } else {
-        indicator.className = "w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-surface-container-high text-outline flex items-center justify-center transition-all";
+        indicator.className = "w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center transition-all";
         indicator.innerHTML = icon(STEP_ICONS[i]);
-        label.className = "font-label-md text-xs sm:text-sm mt-1.5 text-outline";
+        label.className = "font-bold text-xs sm:text-sm mt-2 text-blue-600";
       }
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -359,71 +424,98 @@ tailwind.config={"darkMode":"class","theme":{"extend":{"colors":{"inverse-surfac
     const totalCount = cart.reduce((sum, i) => sum + i.quantity, 0);
 
     const subtitle = document.getElementById('cart-subtitle');
-    if (subtitle) subtitle.textContent = `You have ${totalCount} item${totalCount !== 1 ? 's' : ''} in your bag.`;
+    if (subtitle) subtitle.remove();
 
     if (cart.length === 0) {
       cartContainer.innerHTML = `
-        <div class="bg-surface-container-lowest rounded-xl p-8 sm:p-12 text-center shadow-sm">
-          <span class="material-symbols-outlined text-[60px] text-outline mb-2">shopping_bag</span>
-          <h3 class="text-lg font-bold text-on-surface mb-1">Your cart is empty</h3>
-          <p class="font-body-sm text-on-surface-variant text-sm">Add products from the shop to get started.</p>
-          <a href="shop.php" class="inline-block mt-4 px-6 py-2.5 bg-primary text-on-primary rounded-lg font-label-md shadow-sm">Browse Shop</a>
+        <div class="bg-white rounded-2xl p-12 text-center shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
+          <div class="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span class="material-symbols-outlined text-[48px] text-primary">shopping_bag</span>
+          </div>
+          <h3 class="text-2xl font-bold text-on-surface mb-2">Your cart is empty</h3>
+          <p class="font-body-sm text-on-surface-variant text-base mb-6">Looks like you haven't added anything yet.</p>
+          <a href="shop.php" class="inline-flex items-center gap-2 px-8 py-3.5 bg-primary text-white rounded-xl font-bold shadow-md hover:bg-blue-700 transition-all">
+            <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+            Browse Supplements
+          </a>
         </div>`;
     } else {
       let itemsHTML = cart.map(item => {
-        // Automatically strip leading '../' so images load correctly from root pages
         const cleanImg = item.image ? item.image.replace(/^\.\.\//, '') : 'https://images.unsplash.com/photo-1546483875-ad9014c88eba?auto=format&fit=crop&w=500&q=80';
-        
+
         return `
-        <div class="p-4 sm:p-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 border-b border-surface-container-low last:border-0">
-          <div class="flex items-center gap-4 flex-1">
-            <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden bg-surface-container-high flex-shrink-0 flex items-center justify-center p-1">
+        <div class="p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-5 bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+          <div class="flex items-center gap-5 flex-1 w-full">
+            <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-gray-50 flex-shrink-0 flex items-center justify-center p-2 border border-gray-100">
               <img class="max-h-full max-w-full object-contain" alt="${item.name}" src="${cleanImg}"/>
             </div>
             <div class="min-w-0 flex-1">
-              <h3 class="font-bold text-on-surface text-base truncate">${item.name}</h3>
-              <p class="font-body-sm text-on-surface-variant text-xs sm:text-sm">${item.unit || ''}</p>
+              <h3 class="font-bold text-on-surface text-base sm:text-lg truncate">${item.name}</h3>
+              <p class="font-body-sm text-on-surface-variant text-sm mt-1">${item.unit || 'Standard'}</p>
+              <div class="text-primary font-bold mt-2 sm:hidden">UGX ${fmt(item.price * item.quantity)}</div>
             </div>
           </div>
-          <div class="flex items-center justify-between sm:justify-end gap-6 pt-2 sm:pt-0 border-t sm:border-0 border-surface-container-low">
-            <div class="flex items-center bg-surface-container-low rounded-lg p-1 border border-outline-variant/30">
-              <button onclick="updateQuantity(${item.id}, -1)" class="w-8 h-8 flex items-center justify-center text-on-surface rounded-md hover:bg-surface-container-high font-bold">-</button>
-              <span class="w-8 text-center font-label-md font-bold text-on-surface">${item.quantity}</span>
-              <button onclick="updateQuantity(${item.id}, 1)" class="w-8 h-8 flex items-center justify-center text-on-surface rounded-md hover:bg-surface-container-high font-bold">+</button>
+
+          <div class="flex items-center justify-between w-full sm:w-auto gap-6 pt-4 sm:pt-0 border-t sm:border-0 border-gray-100">
+            <div class="flex items-center bg-gray-50 rounded-lg p-1 border border-gray-200">
+              <button onclick="updateQuantity(${item.id}, -1)" class="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-primary hover:bg-white rounded-md transition-colors font-bold">-</button>
+              <span class="w-10 text-center font-bold text-on-surface">${item.quantity}</span>
+              <button onclick="updateQuantity(${item.id}, 1)" class="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-primary hover:bg-white rounded-md transition-colors font-bold">+</button>
             </div>
-            <div class="text-right min-w-[100px]">
-              <span class="text-base font-bold text-on-surface block">UGX ${fmt(item.price * item.quantity)}</span>
-              <button onclick="removeItem(${item.id})" class="text-error text-xs hover:underline flex items-center gap-1 justify-end ml-auto mt-1">
-                <span class="material-symbols-outlined text-[14px]">delete</span> Delete
+            <div class="text-right min-w-[120px] hidden sm:block">
+              <span class="text-lg font-bold text-on-surface block">UGX ${fmt(item.price * item.quantity)}</span>
+              <button onclick="removeItem(${item.id})" class="text-red-500 text-xs font-semibold hover:text-red-700 flex items-center gap-1 justify-end ml-auto mt-2 transition-colors">
+                <span class="material-symbols-outlined text-[16px]">delete</span> Remove
               </button>
             </div>
+            <button onclick="removeItem(${item.id})" class="text-red-500 sm:hidden p-2">
+                <span class="material-symbols-outlined text-[20px]">delete</span>
+            </button>
           </div>
         </div>
       `;
       }).join('');
 
       cartContainer.innerHTML = `
-        <div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
-          <div class="px-4 sm:px-6 py-3 bg-surface-container-low flex justify-between items-center text-on-surface-variant font-label-md text-xs sm:text-sm uppercase tracking-wider">
-            <span>Product Details</span>
-            <span class="hidden sm:inline">Quantity &amp; Price</span>
-          </div>
+        <div class="flex items-center justify-between mb-2 px-2">
+            <h2 class="text-xl font-bold text-on-surface">Shopping Cart</h2>
+            <span class="text-sm font-semibold text-primary bg-blue-50 px-3 py-1 rounded-full">${totalCount} Item${totalCount !== 1 ? 's' : ''}</span>
+        </div>
+        <div class="flex flex-col gap-4">
           ${itemsHTML}
         </div>`;
     }
 
     if (summaryContainer) {
       summaryContainer.innerHTML = `
-        <div class="bg-surface-container-lowest rounded-xl p-5 sm:p-6 shadow-sm">
-          <h2 class="text-base font-bold text-on-surface pb-3 border-b border-surface-container-low mb-3">Order Summary</h2>
-          <div class="flex justify-between items-baseline pt-2 pb-4">
-            <span class="font-bold text-on-surface">Total Amount</span>
-            <span class="text-xl sm:text-2xl text-primary font-extrabold">UGX ${fmt(subtotal)}</span>
+        <div class="bg-white rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-gray-100 sticky top-24">
+          <h2 class="text-lg font-bold text-on-surface pb-4 border-b border-gray-100 mb-4">Order Summary</h2>
+
+          <div class="space-y-3 mb-6">
+            <div class="flex justify-between items-center text-sm">
+                <span class="text-gray-500">Subtotal</span>
+                <span class="font-semibold text-on-surface">UGX ${fmt(subtotal)}</span>
+            </div>
+            <div class="flex justify-between items-center text-sm">
+                <span class="text-gray-500">Shipping</span>
+                <span class="font-semibold text-green-600">Calculated at next step</span>
+            </div>
           </div>
-          <button onclick="goToStep(2)" ${cart.length === 0 ? 'disabled' : ''} class="w-full h-12 bg-primary-container hover:bg-primary text-on-primary rounded-lg font-label-lg flex items-center justify-center gap-2 shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+
+          <div class="flex justify-between items-baseline pt-4 border-t border-gray-100 mb-6">
+            <span class="font-bold text-on-surface text-lg">Total</span>
+            <span class="text-2xl text-primary font-extrabold">UGX ${fmt(subtotal)}</span>
+          </div>
+
+          <button onclick="goToStep(2)" ${cart.length === 0 ? 'disabled' : ''} class="w-full h-14 bg-primary hover:bg-blue-700 text-white rounded-xl font-bold text-lg flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed group">
             <span>Proceed to Checkout</span>
-            <span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+            <span class="material-symbols-outlined text-[20px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
           </button>
+
+          <div class="mt-4 flex items-center justify-center gap-2 text-xs text-gray-400 font-medium">
+            <span class="material-symbols-outlined text-[16px]">lock</span>
+            Secure Checkout
+          </div>
         </div>`;
     }
 
@@ -467,7 +559,7 @@ tailwind.config={"darkMode":"class","theme":{"extend":{"colors":{"inverse-surfac
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                user_id: currentUserId, // Pass active user ID here
+                user_id: currentUserId,
                 total_amount: subtotal,
                 address: addressInfo,
                 items: cartItems

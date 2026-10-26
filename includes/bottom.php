@@ -64,7 +64,7 @@
           "From explosive energy to laser focus—everything you need to dominate your workout."
           </p>
 <div class="mt-6">
-<a class="inline-flex items-center justify-center gap-2.5 px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-base rounded-md shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 group" data-purpose="cta-button" href="#" role="button">
+<a class="inline-flex items-center justify-center gap-2.5 px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-base rounded-md shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 group" data-purpose="cta-button" href="portal/portalogin.php" role="button">
 <span>Join now</span>
 <svg class="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 <path d="M14 5l7 7m0 0l-7 7m7-7H3" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"></path>
