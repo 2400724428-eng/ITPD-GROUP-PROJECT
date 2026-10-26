@@ -491,6 +491,16 @@
             console.log('PWA was installed');
         });
     </script>
-
+    
+<!-- Neexa Widget -->
+<script>
+  window.neexaAsyncInit = function() {
+    window.neexa.init({
+      agent_id: 'a3123c5e-f5ea-4428-a344-f7eb70d21c46', mobile_mini_style: 'greeting_only',
+    });
+  };
+</script>
+<script async src="https://chat-widget.neexa.ai/main.js?nonce=1792988494060.99"></script>
+<!-- End Neexa Widget -->
 </body>
 </html>
