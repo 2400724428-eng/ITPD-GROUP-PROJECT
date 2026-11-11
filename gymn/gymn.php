@@ -66,7 +66,7 @@
 <span class="text-[10px] sm:text-xs text-gray-500 font-medium tracking-wide">/ month</span>
 </div>
 <ul class="text-[11px] sm:text-xs text-gray-600 space-y-2 sm:space-y-3 py-4 sm:py-6 border-t border-b border-gray-100 text-left sm:text-center">
-<li>Full Gym Access (Open Hours)</li>
+<li>Full Gym Access (Open Hourss)</li>
 <li>Monthly Body Scan</li>
 <li>Standard Mobile App</li>
 <li>Locker &amp; Sauna Access</li>
