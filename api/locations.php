@@ -5,7 +5,7 @@ header('Access-Control-Allow-Origin: *');
 // Comprehensive Uganda Locations Dataset (Cities, Towns, and Major Areas/Streets)
 $ugandaLocations = [
     [
-        "city" => "Kampala",
+        "city" => "Kam   pala",
         "areas" => [
             "Nakawa", "Banda", "Ntinda", "Kyambogo", "Bugolobi", 
             "Kololo", "Kira Road", "Lugogo", "Kamwokya", "Bukoto", 
